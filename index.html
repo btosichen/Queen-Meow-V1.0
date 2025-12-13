@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cat Can Rescue | Queen Meow 的救援作戰</title>
+    <style>
+        :root {
+            --primary-color: #ff9a9e;
+            --secondary-color: #fad0c4;
+            --text-color: #5d4037;
+            --ui-bg: rgba(255, 255, 255, 0.95);
+            --gold-color: #FFD700;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #87CEEB;
+            touch-action: none;
+            user-select: none;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100vh;
+        }
+
+        /* UI Layers */
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .interactive {
+            pointer-events: auto;
+        }
+
+        /* HUD */
+        #hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            color: var(--text-color);
+            font-weight: bold;
+            text-shadow: 2px 2px 0px #fff;
+            z-index: 5;
+        }
+
+        .hud-box {
+            background: var(--ui-bg);
+            padding: 8px 15px;
+            border-radius: 20px;
+            border: 2px solid var(--primary-color);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 5px;
+            font-size: 14px;
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+        }
+
+        .money-text {
+            color: #d84315;
+            font-weight: 800;
+            margin-left: 5px;
+        }
+
+        .menu-btn {
+            cursor: pointer;
+            background: #fff;
+            border: 2px solid #666;
+            color: #333;
+            padding: 5px 10px;
+            font-size: 12px;
+            border-radius: 15px;
+            margin-right: 10px;
+        }
+        .menu-btn:hover { background: #eee; }
+
+        /* Skill Indicator */
+        #skill-indicator {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 0, 0.9);
+            color: red;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-weight: bold;
+            font-size: 1.2em;
+            border: 3px solid orange;
+            animation: pulse 1s infinite;
+            display: none;
+        }
+
+        @keyframes pulse {
+            0% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.1); }
+            100% { transform: translateX(-50%) scale(1); }
+        }
+
+        /* Panels */
+        .panel {
+            background: var(--ui-bg);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            border: 4px solid var(--primary-color);
+            max-width: 90%;
+            width: 450px;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+        }
+
+        h1 { margin: 0 0 10px 0; color: #e65100; font-size: 1.8em; }
+        h2 { margin: 0 0 15px 0; color: #e65100; font-size: 1.5em; }
+        p { color: var(--text-color); line-height: 1.5; margin-bottom: 15px; }
+        
+        button {
+            background: linear-gradient(to bottom, #ff9a9e 0%, #ff6b6b 100%);
+            border: none;
+            padding: 12px 25px;
+            color: white;
+            font-size: 1.1em;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 10px 5px;
+            box-shadow: 0 4px 0 #d32f2f;
+            transition: transform 0.1s;
+            min-width: 140px;
+        }
+
+        button:active { transform: translateY(4px); box-shadow: 0 1px 0 #d32f2f; }
+        button:disabled { filter: grayscale(1); cursor: not-allowed; opacity: 0.6; }
+
+        button.mode-btn {
+            display: block;
+            width: 80%;
+            margin: 10px auto;
+        }
+
+        button.secondary {
+            background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%);
+            box-shadow: 0 4px 0 #0288d1;
+        }
+        button.secondary:active { box-shadow: 0 1px 0 #0288d1; }
+
+        /* Upgrade Button Style */
+        .upgrade-box {
+            background: #fff3e0;
+            border: 2px dashed #ff9800;
+            padding: 10px;
+            border-radius: 15px;
+            margin: 15px 0;
+        }
+        .upgrade-btn {
+            background: linear-gradient(to bottom, #ffd700 0%, #ff8c00 100%);
+            box-shadow: 0 4px 0 #e65100;
+            font-weight: bold;
+            color: #5d4037;
+            width: 100%;
+            margin: 5px 0;
+        }
+        .upgrade-btn:active { box-shadow: 0 1px 0 #e65100; }
+
+        /* Cat Cards */
+        .cat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 8px;
+            margin: 15px 0;
+        }
+
+        .cat-card {
+            background: #fff;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            padding: 5px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .cat-card.selected { border-color: #e65100; background: #ffe0b2; transform: scale(1.1); z-index: 2; }
+        .cat-card.used { opacity: 0.4; filter: grayscale(1); cursor: default; }
+
+        .hidden { display: none !important; }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- HUD -->
+    <div id="hud" class="hidden">
+        <div style="display:flex; flex-direction:column;">
+            <div class="hud-box">
+                <button class="menu-btn" onclick="location.reload()">🏠 選單</button>
+                <span>💰 <span id="moneyDisplay" class="money-text">0</span></span>
+            </div>
+            <div class="hud-box" id="levelDisplayBox">關卡: <span id="levelDisplay">1</span></div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end;">
+            <div class="hud-box">貓咪: <span id="catCountDisplay">0</span></div>
+            <div class="hud-box" id="targetDisplayBox" style="color:red">罐頭: <span id="canDisplay">0</span></div>
+            <div class="hud-box hidden" id="comboDisplay" style="color:#e65100">Combo!</div>
+        </div>
+    </div>
+
+    <!-- Skill Indicator -->
+    <div id="skill-indicator">技能可用! (點擊/空白鍵)</div>
+
+    <!-- Start Screen -->
+    <div id="startScreen" class="ui-layer interactive">
+        <div class="panel">
+            <h1>👑 Queen Meow 的救援作戰</h1>
+            <p>累積金幣，升級裝備，推倒更巨大的罐頭塔！</p>
+            
+            <div class="upgrade-box">
+                <div style="font-size:0.9em; margin-bottom:5px;">彈射器等級: <span id="startLauncherLv">1</span></div>
+                <button id="startUpgradeBtn" class="upgrade-btn" onclick="game.buyUpgrade()">
+                    ⬆️ 升級 ($500)
+                </button>
+                <div style="font-size:0.8em; color:#666;">目前金幣: 💰<span id="startMoneyDisplay">0</span></div>
+            </div>
+
+            <button class="mode-btn" onclick="game.initMode('RESCUE')">🚀 闖關救援模式</button>
+            <button class="mode-btn secondary" onclick="game.initMode('DISTANCE')">🌸 花園飛遠模式</button>
+        </div>
+    </div>
+
+    <!-- Level Cleared / Failed -->
+    <div id="resultScreen" class="ui-layer interactive hidden">
+        <div class="panel">
+            <h1 id="resultTitle">關卡完成!</h1>
+            <p id="resultMsg">女王獲救了!</p>
+            <h2 id="resultScore">0</h2>
+            
+            <div class="upgrade-box">
+                <div style="font-size:0.9em;">強化你的貓咪彈射器！</div>
+                <button id="resultUpgradeBtn" class="upgrade-btn" onclick="game.buyUpgrade()">
+                    ⬆️ 升級 ($500)
+                </button>
+                <div style="font-size:0.8em; color:#666;">持有金幣: 💰<span id="resultMoneyDisplay">0</span></div>
+            </div>
+
+            <div id="nextLevelControls">
+                <button id="nextLevelBtn">下一關</button>
+            </div>
+            <button class="secondary" onclick="location.reload()">回主選單</button>
+        </div>
+    </div>
+
+    <!-- Cat Selector (Between Shots) -->
+    <div id="selectScreen" class="ui-layer interactive hidden">
+        <div class="panel" style="padding: 15px; width: 350px;">
+            <h3 style="margin:5px 0;">選擇下一位勇者</h3>
+            <div class="cat-grid" id="catGrid"></div>
+            <div id="catDesc" style="font-size:0.85em; color:#666; height:40px;">...</div>
+            <button id="launchBtn" disabled>準備發射</button>
+        </div>
+    </div>
+
+<script>
+/**
+ * Cat Can Rescue: Queen Meow's Rescue Operation
+ * Features: Physics, Entity System, Money/Upgrade System, LocalStorage Persistence
+ */
+
+// --- 1. CONFIG & DATA ---
+const CONFIG = {
+    gravity: 0.25,
+    groundFriction: 0.95,
+    airDrag: 0.995,
+    stopVelocity: 0.15,
+    meterScale: 0.1,
+    debug: false,
+    basePower: 0.15, // Base launch power
+    width: 0, 
+    height: 0
+};
+
+// 貓咪資料 (包含技能)
+const CAT_TYPES = [
+    { id: 'orange', name: '小橘', color: '#FFB347', mass: 1.0, radius: 15, skill: 'DASH', desc: '技能: 二段加速衝刺' },
+    { id: 'black', name: '黑貓', color: '#333333', mass: 1.0, radius: 14, skill: 'CLONE', desc: '技能: 影分身攻擊' },
+    { id: 'cow', name: '乳牛', color: '#EEEEEE', pattern: 'cow', mass: 1.3, radius: 16, skill: 'QUAKE', desc: '技能: 落地大地震' },
+    { id: 'calico', name: '三花', color: '#FFFFFF', pattern: 'calico', mass: 1.0, radius: 15, skill: 'FLOWER_BOMB', desc: '技能: 空中灑花爆擊' },
+    { id: 'tabby', name: '虎斑', color: '#A0A0A0', pattern: 'stripe', mass: 1.4, radius: 16, skill: 'DRILL', desc: '技能: 鑽頭滾動 (低摩擦)' },
+    { id: 'white', name: '白貓', color: '#F0F8FF', mass: 0.8, radius: 13, skill: 'STEER', desc: '技能: 柔風轉向 (滑鼠/按鍵控制)' },
+    { id: 'chubby', name: '胖胖', color: '#FFD1DC', mass: 2.0, radius: 22, skill: 'GIANT', desc: '技能: 巨大化撞擊' }
+];
+
+// Helper variables for Can Sizes
+const CAN_W = 70; 
+const CAN_H = 70; 
+const BASE_H = 40; 
+
+// 關卡資料 (Added vertical spacing buffers to prevent initial intersection)
+const LEVELS = [
+    // Level 1: Basic Stacks (3 layers of BIG cans)
+    {
+        name: "Lv.1 巨大罐頭疊疊樂",
+        entities: [
+            // Base blocks
+            {t:1, x:700, y:0, w:80, h:40}, {t:1, x:850, y:0, w:80, h:40}, {t:1, x:1000, y:0, w:80, h:40},
+            // Stack 1 (Raised by 2px increments)
+            {t:9, x:705, y:40+2}, {t:9, x:705, y:40+CAN_H+4}, {t:9, x:705, y:40+CAN_H*2+6},
+            // Stack 2
+            {t:9, x:855, y:40+2}, {t:9, x:855, y:40+CAN_H+4}, {t:9, x:855, y:40+CAN_H*2+6},
+            // Stack 3
+            {t:9, x:1005, y:40+2}, {t:9, x:1005, y:40+CAN_H+4}, {t:9, x:1005, y:40+CAN_H*2+6},
+            {t:99, x:1200, y:0}
+        ]
+    },
+    // Level 2: Pyramid (4 layers)
+    {
+        name: "Lv.2 罐頭金字塔",
+        entities: [
+            {t:1, x:700, y:0, w:300, h:40},
+            {t:9, x:720, y:40+2}, {t:9, x:810, y:40+2}, {t:9, x:900, y:40+2},
+            {t:9, x:765, y:40+CAN_H+4}, {t:9, x:855, y:40+CAN_H+4},
+            {t:9, x:810, y:40+CAN_H*2+6},
+            {t:99, x:1150, y:0}
+        ]
+    },
+    // Level 3: Ice Towers (4 layers high)
+    {
+        name: "Lv.3 冰上巨塔",
+        entities: [
+            {t:2, x:650, y:0, w:350, h:40},
+            {t:9, x:700, y:40+2}, {t:9, x:700, y:40+CAN_H+4}, {t:9, x:700, y:40+CAN_H*2+6}, {t:9, x:700, y:40+CAN_H*3+8},
+            {t:9, x:850, y:40+2}, {t:9, x:850, y:40+CAN_H+4}, {t:9, x:850, y:40+CAN_H*2+6}, {t:9, x:850, y:40+CAN_H*3+8},
+            {t:2, x:775, y:120, w:70, h:20}, {t:9, x:775, y:140+2},
+            {t:99, x:1100, y:0}
+        ]
+    },
+    // Level 4: Stone Walls
+    {
+        name: "Lv.4 罐頭城牆",
+        entities: [
+            {t:3, x:700, y:0, w:60, h:100}, {t:3, x:850, y:0, w:60, h:100}, {t:3, x:1000, y:0, w:60, h:100},
+            {t:9, x:700, y:100+2}, {t:9, x:700, y:100+CAN_H+4},
+            {t:9, x:850, y:100+2}, {t:9, x:850, y:100+CAN_H+4},
+            {t:9, x:1000, y:100+2}, {t:9, x:1000, y:100+CAN_H+4},
+            {t:1, x:680, y:100+CAN_H*2+6, w:400, h:20},
+            {t:9, x:750, y:100+CAN_H*2+20+8}, {t:9, x:850, y:100+CAN_H*2+20+8}, {t:9, x:950, y:100+CAN_H*2+20+8},
+            {t:99, x:1200, y:0}
+        ]
+    },
+    // Level 5: Boss Fortress
+    {
+        name: "Lv.5 終極罐頭王座",
+        entities: [
+            {t:3, x:600, y:0, w:60, h:60}, {t:9, x:600, y:60+2}, {t:9, x:600, y:60+CAN_H+4}, {t:9, x:600, y:60+CAN_H*2+6},
+            {t:3, x:1000, y:0, w:60, h:60}, {t:9, x:1000, y:60+2}, {t:9, x:1000, y:60+CAN_H+4}, {t:9, x:1000, y:60+CAN_H*2+6},
+            {t:3, x:750, y:0, w:160, h:60},
+            {t:9, x:760, y:60+2}, {t:9, x:870, y:60+2},
+            {t:10, x:815, y:60+2}, 
+            {t:1, x:750, y:200, w:160, h:20},
+            {t:9, x:780, y:220+2}, {t:9, x:850, y:220+2},
+            {t:99, x:1200, y:0}
+        ]
+    }
+];
+
+// --- 2. AUDIO SYSTEM ---
+class AudioController {
+    constructor() {
+        this.ctx = null;
+        this.enabled = false;
+    }
+    init() {
+        if (!this.ctx) {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            this.enabled = true;
+        }
+        if(this.ctx.state === 'suspended') this.ctx.resume();
+    }
+    playTone(freq, type, dur, vol=0.1, slide=0) {
+        if (!this.enabled) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        if(slide !== 0) osc.frequency.linearRampToValueAtTime(freq + slide, this.ctx.currentTime + dur);
+        gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + dur);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + dur);
+    }
+    playShoot() { this.playTone(200, 'sawtooth', 0.3, 0.1, 400); }
+    playHit() { this.playTone(100, 'square', 0.1, 0.2, -50); }
+    playBreak() { 
+        this.playTone(50, 'sawtooth', 0.1, 0.2); 
+        setTimeout(()=>this.playTone(80, 'square', 0.1, 0.1), 50);
+    }
+    playCanHit() { this.playTone(600, 'sine', 0.1, 0.1, 200); } 
+    playWin() { 
+        [0, 200, 400, 600].forEach((d, i) => setTimeout(() => this.playTone(400 + i*100, 'triangle', 0.3, 0.2), d));
+    }
+    playSkill() { this.playTone(800, 'sine', 0.4, 0.2, -400); }
+    playCoin() { this.playTone(1200, 'sine', 0.1, 0.1); setTimeout(()=>this.playTone(1600, 'sine', 0.1, 0.1), 50); } // Ka-ching!
+    playBuy() { this.playTone(400, 'square', 0.2, 0.2, 200); }
+}
+
+// --- 3. PHYSICS & ENTITIES ---
+
+class Entity {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.delete = false;
+    }
+}
+
+class Obstacle extends Entity {
+    constructor(def, groundY) {
+        let w = def.w || 40;
+        let h = def.h || 40;
+        if (def.t === 9) { w = CAN_W; h = CAN_H; }
+        if (def.t === 10) { w = 120; h = 120; }
+        super(def.x, groundY - def.y - h); 
+        
+        this.w = w;
+        this.h = h;
+        this.type = def.t; 
+        this.vx = 0;
+        this.vy = 0;
+        this.hp = this.getMaxHP();
+        this.maxHp = this.hp;
+        this.rotation = def.rot || 0;
+        this.isStatic = false; 
+        this.friction = this.type === 2 ? 0.99 : 0.8;
+    }
+
+    getMaxHP() {
+        switch(this.type) {
+            case 1: return 60; // Wood
+            case 2: return 40; // Ice
+            case 3: return 200; // Stone
+            case 9: return 10; // Can
+            case 10: return 500; // Boss
+            default: return 9999;
+        }
+    }
+
+    getBounty() {
+        switch(this.type) {
+            case 1: return 10;
+            case 2: return 20;
+            case 3: return 30;
+            case 9: return 100;
+            case 10: return 500;
+            default: return 0;
+        }
+    }
+
+    update(gravity, groundY) {
+        if (this.type === 99) return; 
+
+        if (this.y + this.h < groundY) {
+            this.vy += gravity;
+        } else if (this.y + this.h >= groundY) {
+            this.y = groundY - this.h;
+            this.vy = -this.vy * 0.3; 
+            this.vx *= this.friction;
+            if (Math.abs(this.vy) < 0.5) this.vy = 0;
+        }
+
+        this.x += this.vx;
+        this.y += this.vy;
+
+        if (this.hp <= 0 || this.x > 3000 || this.x < -500) {
+            this.delete = true;
+            return true; 
+        }
+        return false;
+    }
+
+    takeDamage(amount) {
+        this.hp -= amount;
+        game.particles.push(new Particle(this.x + this.w/2, this.y + this.h/2, this.getColor(), 3));
+    }
+
+    getColor() {
+        switch(this.type) {
+            case 1: return '#8D6E63';
+            case 2: return '#B3E5FC';
+            case 3: return '#757575';
+            case 9: return '#FFF9C4';
+            case 10: return '#FFD700';
+            default: return '#FFF';
+        }
+    }
+}
+
+class Particle extends Entity {
+    constructor(x, y, color, speed=5) {
+        super(x, y);
+        this.vx = (Math.random() - 0.5) * speed;
+        this.vy = (Math.random() - 0.5) * speed;
+        this.life = 40 + Math.random() * 20;
+        this.color = color;
+        this.size = Math.random() * 4 + 2;
+        this.isText = false;
+        this.text = "";
+    }
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.life--;
+        if (!this.isText) this.vy += 0.1; 
+        else this.vy -= 0.5; // Float up text
+        if (this.life <= 0) this.delete = true;
+    }
+    draw(ctx) {
+        ctx.globalAlpha = Math.max(0, this.life / 60);
+        if (this.isText) {
+            ctx.fillStyle = '#FFFF00';
+            ctx.font = 'bold 20px Arial';
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 3;
+            ctx.strokeText(this.text, this.x, this.y);
+            ctx.fillText(this.text, this.x, this.y);
+        } else {
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+    }
+}
+
+// --- 4. GAME ENGINE ---
+
+class Game {
+    constructor() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.audio = new AudioController();
+        
+        this.mode = 'RESCUE'; 
+        this.levelIdx = 0;
+        this.state = 'MENU'; 
+        
+        this.cat = null;
+        this.obstacles = [];
+        this.particles = [];
+        this.flowers = [];
+        this.cameraX = 0;
+        
+        this.slingX = 150;
+        this.slingY = 0; 
+        this.dragStart = null;
+        this.dragCurrent = null;
+        this.flyTimer = 0;
+        
+        this.score = 0;
+        this.catsUsed = 0;
+        this.catsPool = [];
+        
+        // Economy & Upgrade System
+        this.money = 0;
+        this.launcherLevel = 1;
+        this.loadSave();
+        
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+        this.bindInput();
+        
+        this.updateUI();
+        this.lastTime = 0;
+        requestAnimationFrame(t => this.loop(t));
+    }
+
+    loadSave() {
+        const saved = localStorage.getItem('catRescueData');
+        if (saved) {
+            const data = JSON.parse(saved);
+            this.money = data.money || 0;
+            this.launcherLevel = data.launcherLevel || 1;
+        }
+    }
+
+    saveData() {
+        const data = {
+            money: this.money,
+            launcherLevel: this.launcherLevel
+        };
+        localStorage.setItem('catRescueData', JSON.stringify(data));
+        this.updateUI();
+    }
+
+    addMoney(amount, x, y) {
+        this.money += amount;
+        this.score += amount; // Score doubles as points
+        this.saveData();
+        
+        // Create Floating Text
+        if (x !== undefined && y !== undefined) {
+            const p = new Particle(x, y, '', 0);
+            p.isText = true;
+            p.text = `+$${amount}`;
+            p.life = 60;
+            this.particles.push(p);
+        }
+    }
+
+    getUpgradeCost() {
+        return this.launcherLevel * 500;
+    }
+
+    buyUpgrade() {
+        const cost = this.getUpgradeCost();
+        if (this.money >= cost) {
+            this.money -= cost;
+            this.launcherLevel++;
+            this.audio.playBuy();
+            this.saveData();
+            // Animation?
+            alert(`升級成功！彈射器等級提升至 Lv.${this.launcherLevel}！`);
+        } else {
+            alert(`金幣不足！需要 $${cost}。快去破壞更多罐頭吧！`);
+        }
+        this.updateUI(); // Refresh buttons
+    }
+
+    getLaunchPower() {
+        // Base 0.15, +10% per extra level
+        return CONFIG.basePower * (1 + (this.launcherLevel - 1) * 0.1);
+    }
+
+    resize() {
+        CONFIG.width = window.innerWidth;
+        CONFIG.height = window.innerHeight;
+        this.canvas.width = CONFIG.width;
+        this.canvas.height = CONFIG.height;
+        this.slingY = CONFIG.height - 150;
+    }
+
+    initMode(modeName) {
+        this.audio.init();
+        this.mode = modeName;
+        this.levelIdx = 0;
+        this.score = 0;
+        document.getElementById('startScreen').classList.add('hidden');
+        document.getElementById('hud').classList.remove('hidden');
+        
+        if (modeName === 'RESCUE') {
+            document.getElementById('targetDisplayBox').classList.remove('hidden');
+            document.getElementById('levelDisplayBox').classList.remove('hidden');
+            this.startLevel(0);
+        } else {
+            document.getElementById('targetDisplayBox').classList.add('hidden');
+            document.getElementById('levelDisplayBox').classList.add('hidden');
+            this.catsPool = [...CAT_TYPES]; 
+            this.obstacles = [];
+            this.startTurn();
+        }
+        this.updateUI();
+    }
+
+    startLevel(idx) {
+        this.levelIdx = idx;
+        const levelData = LEVELS[idx];
+        this.obstacles = [];
+        this.flowers = [];
+        this.particles = [];
+        this.catsPool = [...CAT_TYPES]; 
+        this.catsUsed = 0;
+        this.cameraX = 0;
+        
+        const groundY = CONFIG.height - 100;
+        levelData.entities.forEach(e => {
+            this.obstacles.push(new Obstacle(e, groundY));
+        });
+
+        document.getElementById('levelDisplay').innerText = idx + 1;
+        this.updateHUD();
+        this.startTurn();
+    }
+
+    startTurn() {
+        if (this.catsPool.length === 0) {
+            if (this.mode === 'RESCUE') {
+                if (this.checkWinCondition()) {
+                    this.winLevel();
+                } else {
+                    this.failLevel();
+                }
+            } else {
+                this.endGameDistance();
+            }
+            return;
+        }
+
+        this.state = 'SELECT';
+        this.cameraX = 0; 
+        this.renderCatSelector();
+        document.getElementById('selectScreen').classList.remove('hidden');
+        document.getElementById('skill-indicator').style.display = 'none';
+    }
+
+    renderCatSelector() {
+        const grid = document.getElementById('catGrid');
+        grid.innerHTML = '';
+        const desc = document.getElementById('catDesc');
+        const btn = document.getElementById('launchBtn');
+        btn.disabled = true;
+        this.selectedCatType = null;
+
+        this.catsPool.forEach((cat, i) => {
+            const el = document.createElement('div');
+            el.className = 'cat-card';
+            el.style.borderColor = cat.color;
+            el.innerHTML = `<div style="font-size:24px;">🐱</div><div style="font-size:10px;">${cat.name}</div>`;
+            el.onclick = () => {
+                document.querySelectorAll('.cat-card').forEach(c => c.classList.remove('selected'));
+                el.classList.add('selected');
+                this.selectedCatType = cat;
+                this.selectedCatIdx = i; 
+                desc.textContent = cat.desc;
+                btn.disabled = false;
+            };
+            grid.appendChild(el);
+        });
+
+        btn.onclick = () => {
+            if (this.selectedCatType) {
+                this.catsPool.splice(this.selectedCatIdx, 1);
+                
+                this.cat = {
+                    ...this.selectedCatType,
+                    x: this.slingX,
+                    y: this.slingY,
+                    vx: 0, vy: 0,
+                    rotation: 0,
+                    skillUsed: false,
+                    onGround: false,
+                    stopped: false,
+                    stopTimer: 0
+                };
+                
+                document.getElementById('selectScreen').classList.add('hidden');
+                this.state = 'AIM';
+                this.updateHUD();
+            }
+        };
+    }
+
+    bindInput() {
+        const start = (pos) => {
+            if (this.state === 'AIM') {
+                const dx = pos.x - (this.slingX - this.cameraX);
+                const dy = pos.y - this.slingY;
+                if (Math.hypot(dx, dy) < 100) {
+                    this.dragStart = {x: this.slingX, y: this.slingY};
+                    this.dragCurrent = pos;
+                }
+            } else if (this.state === 'FLY' && this.cat && !this.cat.skillUsed) {
+                this.activateSkill();
+            }
+        };
+        const move = (pos) => {
+            if (this.state === 'AIM' && this.dragStart) {
+                let dx = pos.x - this.slingX;
+                let dy = pos.y - this.slingY;
+                const len = Math.hypot(dx, dy);
+                if (len > 150) {
+                    const r = 150/len;
+                    dx *= r; dy *= r;
+                }
+                this.dragCurrent = {x: this.slingX + dx, y: this.slingY + dy};
+            }
+        };
+        const end = () => {
+            if (this.state === 'AIM' && this.dragStart) {
+                this.launch();
+            }
+            this.dragStart = null;
+        };
+        
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                 if (this.state === 'FLY' && !this.cat.skillUsed) this.activateSkill();
+            }
+            if (e.code === 'ArrowRight' && this.cat && this.cat.skill === 'STEER' && this.cat.skillUsed) {
+                this.cat.vx += 0.5;
+            }
+            if (e.code === 'ArrowLeft' && this.cat && this.cat.skill === 'STEER' && this.cat.skillUsed) {
+                this.cat.vx -= 0.5;
+            }
+        });
+
+        const getPos = (e) => {
+            const r = this.canvas.getBoundingClientRect();
+            return {x: e.clientX - r.left, y: e.clientY - r.top};
+        };
+        
+        this.canvas.addEventListener('mousedown', e => start(getPos(e)));
+        window.addEventListener('mousemove', e => move(getPos(e)));
+        window.addEventListener('mouseup', end);
+        
+        this.canvas.addEventListener('touchstart', e => start(getPos(e.changedTouches[0])), {passive:false});
+        window.addEventListener('touchmove', e => { e.preventDefault(); move(getPos(e.changedTouches[0])); }, {passive:false});
+        window.addEventListener('touchend', end);
+    }
+
+    launch() {
+        if (!this.dragCurrent) return;
+        const dx = this.slingX - this.dragCurrent.x;
+        const dy = this.slingY - this.dragCurrent.y;
+        
+        const power = this.getLaunchPower(); // Apply Upgrade
+        this.cat.vx = dx * power;
+        this.cat.vy = dy * power;
+        
+        this.state = 'FLY';
+        this.flyTimer = 0; 
+        this.audio.playShoot();
+        
+        document.getElementById('skill-indicator').style.display = 'block';
+    }
+
+    activateSkill() {
+        if (!this.cat || this.cat.skillUsed) return;
+        this.cat.skillUsed = true;
+        this.audio.playSkill();
+        document.getElementById('skill-indicator').style.display = 'none';
+        
+        const s = this.cat.skill;
+        if (s === 'DASH') {
+            this.cat.vx *= 1.8;
+            this.addEffect(this.cat.x, this.cat.y, 'burst');
+        } else if (s === 'CLONE') {
+            const p1 = new Particle(this.cat.x, this.cat.y - 20, '#333', 0);
+            p1.vx = this.cat.vx; p1.vy = this.cat.vy; p1.life = 100; p1.size = 14; p1.isClone = true;
+            
+            const p2 = new Particle(this.cat.x, this.cat.y + 20, '#333', 0);
+            p2.vx = this.cat.vx; p2.vy = this.cat.vy; p2.life = 100; p2.size = 14; p2.isClone = true;
+            
+            this.particles.push(p1, p2);
+        } else if (s === 'FLOWER_BOMB') {
+            for(let i=0; i<10; i++) {
+                this.flowers.push({x: this.cat.x + (Math.random()-0.5)*100, y: this.height-100, scale:0, targetScale:1, color:'pink'});
+            }
+        } else if (s === 'DRILL') {
+            this.cat.mass *= 2; 
+        } else if (s === 'GIANT') {
+            this.cat.radius *= 2;
+            this.cat.mass *= 3;
+        } else if (s === 'QUAKE') {
+            this.cat.quakeReady = true; 
+        }
+    }
+
+    update(dt) {
+        if (!this.cat && this.state === 'FLY') {
+             this.state = 'END_SHOT';
+        }
+
+        const groundY = CONFIG.height - 100;
+
+        // --- 1. Cat Physics ---
+        if (this.state === 'FLY' && this.cat) {
+            this.flyTimer++;
+            if (this.flyTimer > 600) { 
+                this.state = 'END_SHOT';
+                document.getElementById('skill-indicator').style.display = 'none';
+                this.resolveTurn();
+                return;
+            }
+
+            let drag = CONFIG.airDrag;
+            if (this.cat.skill === 'DRILL' && this.cat.skillUsed) drag = 1.0; 
+            
+            this.cat.vx *= drag;
+            this.cat.vy *= drag;
+            this.cat.vy += CONFIG.gravity * this.cat.mass;
+
+            this.cat.x += this.cat.vx;
+            this.cat.y += this.cat.vy;
+            this.cat.rotation += this.cat.vx * 0.05;
+
+            if (this.cat.y + this.cat.radius > groundY) {
+                this.cat.y = groundY - this.cat.radius;
+                this.cat.vy *= -0.6; 
+                this.cat.vx *= CONFIG.groundFriction;
+                this.cat.onGround = true;
+                
+                if (this.cat.skill === 'QUAKE' && this.cat.skillUsed && this.cat.quakeReady) {
+                    this.cat.quakeReady = false;
+                    this.shakeObstacles();
+                    this.audio.playBreak();
+                }
+
+                if (Math.abs(this.cat.vx) > 1) {
+                    this.addFlower(this.cat.x, groundY);
+                }
+            } else {
+                this.cat.onGround = false;
+                if (Math.random() < 0.1) this.particles.push(new Particle(this.cat.x, this.cat.y, '#FFC0CB'));
+            }
+
+            if (Math.abs(this.cat.vx) < CONFIG.stopVelocity && Math.abs(this.cat.vy) < CONFIG.stopVelocity && this.cat.onGround) {
+                this.cat.stopTimer++;
+                if (this.cat.stopTimer > 60) {
+                    this.state = 'END_SHOT';
+                    document.getElementById('skill-indicator').style.display = 'none';
+                    setTimeout(() => this.resolveTurn(), 1000);
+                }
+            } else {
+                this.cat.stopTimer = 0;
+            }
+
+            if (this.cat.x > 3000 || this.cat.x < -200) {
+                this.state = 'END_SHOT';
+                setTimeout(() => this.resolveTurn(), 500);
+            }
+        }
+
+        // --- 2. Obstacle Physics & Collision ---
+        let cansAlive = 0;
+
+        for (let i = this.obstacles.length - 1; i >= 0; i--) {
+            const ob = this.obstacles[i];
+            
+            let supported = false;
+            if (ob.y + ob.h >= groundY - 1) {
+                supported = true;
+            } else {
+                for (let j = 0; j < this.obstacles.length; j++) {
+                    if (i === j) continue;
+                    const other = this.obstacles[j];
+                    // Narrow support check for horizontal alignment
+                    if (Math.abs((ob.x + ob.w/2) - (other.x + other.w/2)) < (ob.w/2 + other.w/2) * 0.7) {
+                         // Improved Vertical Stacking: Allow small overlap (20px) to count as support
+                         if (ob.y + ob.h >= other.y && ob.y + ob.h <= other.y + 20) {
+                             supported = true;
+                             ob.y = other.y - ob.h; // Snap to top
+                             ob.vy = 0;
+                             break;
+                         }
+                    }
+                }
+            }
+            
+            if (!supported && ob.type !== 99) {
+                ob.vy += CONFIG.gravity;
+            } else if (supported && ob.vy > 0) {
+                ob.vy = 0;
+                ob.vx *= 0.8; 
+            }
+            
+            if(ob.update(CONFIG.gravity, groundY)) {
+                // Award Money on Destroy
+                this.addMoney(ob.getBounty(), ob.x + ob.w/2, ob.y);
+                
+                if (ob.type === 9 || ob.type === 10) {
+                     this.audio.playCanHit();
+                     this.addEffect(ob.x, ob.y, 'stars');
+                } else {
+                    this.audio.playBreak();
+                    this.audio.playCoin(); // Coin sound
+                }
+                this.obstacles.splice(i, 1);
+                continue;
+            }
+
+            if (ob.type === 9 || ob.type === 10) cansAlive++;
+
+            if (this.state === 'FLY' && this.cat) {
+                this.checkCollision(this.cat, ob);
+            }
+            
+            this.particles.forEach(p => {
+                if(p.isClone) this.checkCollision({x:p.x, y:p.y, vx:p.vx, vy:p.vy, radius:p.size, mass:0.5}, ob, true);
+            });
+        }
+
+        this.cansLeft = cansAlive;
+        this.updateHUD();
+
+        // --- 3. Particles ---
+        this.particles.forEach(p => p.update());
+        this.particles = this.particles.filter(p => !p.delete);
+        
+        this.flowers.forEach(f => {
+            if(f.scale < f.targetScale) f.scale += 0.05;
+        });
+
+        // --- 4. Camera ---
+        let targetCamX = 0;
+        if (this.state === 'FLY' && this.cat) {
+            targetCamX = this.cat.x - CONFIG.width * 0.3;
+        } else if (this.state === 'AIM') {
+            targetCamX = 0;
+        } else if (this.state === 'END_SHOT' && this.obstacles.length > 0) {
+            if(this.cat) targetCamX = this.cat.x - CONFIG.width * 0.3;
+        }
+        
+        targetCamX = Math.max(0, targetCamX);
+        this.cameraX += (targetCamX - this.cameraX) * 0.1;
+    }
+
+    checkCollision(circle, rect, isClone=false) {
+        const clamp = (val, min, max) => Math.max(min, Math.min(val, max));
+        const closestX = clamp(circle.x, rect.x, rect.x + rect.w);
+        const closestY = clamp(circle.y, rect.y, rect.y + rect.h);
+
+        const dx = circle.x - closestX;
+        const dy = circle.y - closestY;
+        const distSq = dx*dx + dy*dy;
+
+        if (distSq < (circle.radius * circle.radius)) {
+            const dist = Math.sqrt(distSq);
+            const overlap = circle.radius - dist;
+            
+            let nx = dx / (dist || 1);
+            let ny = dy / (dist || 1);
+            if (dist === 0) { nx = 0; ny = -1; }
+
+            if(!isClone) {
+                circle.x += nx * overlap;
+                circle.y += ny * overlap;
+            }
+
+            const relativeV = Math.hypot(circle.vx, circle.vy);
+            
+            if (relativeV > 1.5) {
+                const damage = relativeV * circle.mass * (isClone?5:10); 
+                rect.takeDamage(damage);
+                if (!isClone) this.audio.playHit();
+            }
+
+            if(!isClone) {
+                const dot = circle.vx * nx + circle.vy * ny;
+                circle.vx = (circle.vx - 2 * dot * nx) * 0.7; 
+                circle.vy = (circle.vy - 2 * dot * ny) * 0.7;
+            } else {
+                rect.vx += circle.vx * 0.2;
+            }
+            
+            rect.vx += nx * -1 * relativeV * 0.2;
+            rect.vy += ny * -1 * relativeV * 0.1;
+        }
+    }
+
+    shakeObstacles() {
+        this.obstacles.forEach(ob => {
+            if(ob.y > CONFIG.height - 200) {
+                ob.hp -= 20; 
+                ob.vy -= 3; 
+                ob.vx += (Math.random()-0.5)*5;
+            }
+        });
+    }
+
+    resolveTurn() {
+        this.cat = null; 
+        
+        if (this.mode === 'RESCUE') {
+            if (this.checkWinCondition()) {
+                this.winLevel();
+            } else {
+                this.startTurn();
+            }
+        } else {
+            this.startTurn();
+        }
+    }
+
+    checkWinCondition() {
+        return this.obstacles.filter(o => o.type === 9 || o.type === 10).length === 0;
+    }
+
+    winLevel() {
+        this.state = 'LEVEL_END';
+        this.audio.playWin();
+        
+        // Bonus Money for level clear
+        this.addMoney(1000); 
+
+        setTimeout(() => {
+            document.getElementById('resultScreen').classList.remove('hidden');
+            document.getElementById('hud').classList.add('hidden');
+            document.getElementById('resultTitle').innerText = "女王獲救了!";
+            document.getElementById('resultMsg').innerText = `過關獎勵 +$1000`;
+            document.getElementById('resultScore').innerText = `總分: ${this.score}`;
+            
+            this.updateUI(); // Show updated money in result
+
+            const nextBtn = document.getElementById('nextLevelBtn');
+            if (this.levelIdx < LEVELS.length - 1) {
+                nextBtn.style.display = 'inline-block';
+                nextBtn.onclick = () => {
+                    document.getElementById('resultScreen').classList.add('hidden');
+                    document.getElementById('hud').classList.remove('hidden');
+                    this.startLevel(this.levelIdx + 1);
+                };
+            } else {
+                nextBtn.style.display = 'none';
+                document.getElementById('resultMsg').innerText = "恭喜通關！你是貓咪英雄！";
+            }
+        }, 1500);
+    }
+
+    failLevel() {
+        document.getElementById('resultScreen').classList.remove('hidden');
+        document.getElementById('hud').classList.add('hidden');
+        document.getElementById('resultTitle').innerText = "救援失敗...";
+        document.getElementById('resultMsg').innerText = `還有 ${this.cansLeft} 個罐頭沒打倒`;
+        document.getElementById('resultScore').innerText = `得分: ${this.score}`;
+        document.getElementById('nextLevelControls').innerHTML = `<button onclick="game.startLevel(${this.levelIdx}); document.getElementById('resultScreen').classList.add('hidden'); document.getElementById('hud').classList.remove('hidden');">重試本關</button>`;
+        this.updateUI();
+    }
+
+    endGameDistance() {
+        document.getElementById('resultScreen').classList.remove('hidden');
+        document.getElementById('hud').classList.add('hidden');
+        document.getElementById('resultTitle').innerText = "花園之旅結束";
+        document.getElementById('resultScore').innerText = `得分: ${this.score}`;
+        document.getElementById('nextLevelControls').innerHTML = `<button onclick="game.initMode('DISTANCE'); document.getElementById('resultScreen').classList.add('hidden');">再玩一次</button>`;
+        this.updateUI();
+    }
+
+    addFlower(x, y) {
+        if (this.flowers.some(f => Math.abs(f.x - x) < 15)) return;
+        const colors = ['#FF69B4', '#FFB6C1', '#FFC0CB', '#FFA07A'];
+        this.flowers.push({
+            x: x, y: y,
+            scale: 0, targetScale: 0.5 + Math.random()*0.5,
+            color: colors[Math.floor(Math.random()*colors.length)],
+            rotation: Math.random()*Math.PI
+        });
+        if(this.mode === 'RESCUE') this.score += 10;
+        else this.score += 100;
+    }
+
+    addEffect(x, y, type) {
+        for(let i=0; i<10; i++) {
+            this.particles.push(new Particle(x, y, '#FFD700', 8));
+        }
+    }
+
+    updateUI() {
+        // Update Money Displays
+        // Safely check if elements exist before updating
+        const moneyEl = document.getElementById('moneyDisplay');
+        if (moneyEl) moneyEl.innerText = this.money;
+        
+        const startMoneyEl = document.getElementById('startMoneyDisplay');
+        if (startMoneyEl) startMoneyEl.innerText = this.money;
+        
+        const resultMoneyEl = document.getElementById('resultMoneyDisplay');
+        if (resultMoneyEl) resultMoneyEl.innerText = this.money;
+        
+        // Update Launcher Info
+        const launcherLvEl = document.getElementById('startLauncherLv');
+        if (launcherLvEl) launcherLvEl.innerText = this.launcherLevel;
+        
+        // Update Buttons
+        const cost = this.getUpgradeCost();
+        const text = `⬆️ 升級 (Lv.${this.launcherLevel+1}) - $${cost}`;
+        
+        const startUpgradeBtn = document.getElementById('startUpgradeBtn');
+        if (startUpgradeBtn) {
+            startUpgradeBtn.innerText = text;
+            startUpgradeBtn.disabled = this.money < cost;
+        }
+        
+        const resultUpgradeBtn = document.getElementById('resultUpgradeBtn');
+        if (resultUpgradeBtn) {
+            resultUpgradeBtn.innerText = text;
+            resultUpgradeBtn.disabled = this.money < cost;
+        }
+
+        // HUD Info
+        const scoreEl = document.getElementById('scoreDisplay');
+        if (scoreEl) scoreEl.innerText = this.score;
+        
+        const catCountEl = document.getElementById('catCountDisplay');
+        if (catCountEl) catCountEl.innerText = this.catsPool.length;
+        
+        const canDisplayEl = document.getElementById('canDisplay');
+        if (this.mode === 'RESCUE' && canDisplayEl) {
+            canDisplayEl.innerText = this.cansLeft;
+        }
+    }
+
+    updateHUD() {
+        this.updateUI(); // Keep synced
+    }
+
+    // --- 5. RENDER ---
+    draw() {
+        const ctx = this.ctx;
+        ctx.clearRect(0, 0, CONFIG.width, CONFIG.height);
+        
+        ctx.save();
+        
+        // Background
+        ctx.fillStyle = '#87CEEB';
+        ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+        
+        // Clouds parallax
+        this.drawClouds(ctx);
+        
+        // Camera Transform
+        ctx.translate(-this.cameraX, 0);
+        
+        // Ground
+        const groundY = CONFIG.height - 100;
+        ctx.fillStyle = '#8BC34A';
+        ctx.fillRect(this.cameraX, groundY, CONFIG.width, 100);
+        ctx.fillStyle = '#689F38';
+        ctx.fillRect(this.cameraX, groundY, CONFIG.width, 10);
+        
+        // Flowers
+        this.drawFlowers(ctx);
+        
+        // Slingshot (Back)
+        this.drawSlingshot(ctx, false);
+        
+        // Obstacles
+        this.obstacles.forEach(ob => this.drawObstacle(ctx, ob));
+        
+        // Cat
+        if (this.cat) this.drawCat(ctx, this.cat);
+        else if (this.state === 'AIM') {
+             // Preview Cat
+             let x = this.dragCurrent ? this.dragCurrent.x : this.slingX;
+             let y = this.dragCurrent ? this.dragCurrent.y : this.slingY;
+             const previewCat = {...this.selectedCatType, x:x, y:y, rotation:0};
+             this.drawCat(ctx, previewCat);
+             
+             // Aim Line
+             if(this.dragCurrent) {
+                ctx.beginPath();
+                ctx.strokeStyle = "rgba(255,255,255,0.6)";
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5,5]);
+                ctx.moveTo(x, y);
+                ctx.lineTo(this.slingX, this.slingY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+             }
+        }
+        
+        // Slingshot (Front)
+        this.drawSlingshot(ctx, true);
+        
+        // Particles
+        this.particles.forEach(p => p.draw(ctx));
+
+        ctx.restore();
+    }
+
+    drawClouds(ctx) {
+        ctx.fillStyle = "rgba(255,255,255,0.6)";
+        const t = Date.now() * 0.0005;
+        for(let i=0; i<5; i++) {
+            let x = ((i*200) + t*50) % (CONFIG.width*2) + this.cameraX*0.9;
+            let y = 50 + i*30;
+            ctx.beginPath();
+            ctx.arc(x - this.cameraX, y, 40, 0, Math.PI*2);
+            ctx.arc(x+30 - this.cameraX, y+10, 50, 0, Math.PI*2);
+            ctx.fill();
+        }
+    }
+
+    drawFlowers(ctx) {
+        this.flowers.forEach(f => {
+            if (f.x < this.cameraX - 50 || f.x > this.cameraX + CONFIG.width + 50) return;
+            ctx.save();
+            ctx.translate(f.x, f.y);
+            ctx.scale(f.scale, f.scale);
+            ctx.fillStyle = f.color;
+            // Draw Paw Flower
+            ctx.beginPath(); ctx.arc(0, -10, 8, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(-10, -15, 5, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(0, -22, 5, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(10, -15, 5, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = 'green'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,-5); ctx.stroke();
+            ctx.restore();
+        });
+    }
+
+    drawSlingshot(ctx, front) {
+        const x = this.slingX;
+        const y = this.slingY;
+        ctx.strokeStyle = '#5D4037';
+        ctx.lineWidth = 6;
+        
+        if (!front) {
+            ctx.beginPath(); ctx.moveTo(x, y+50); ctx.lineTo(x, y); ctx.lineTo(x-20, y-30); ctx.stroke();
+        } else {
+            // Elastic
+            if (this.state === 'AIM' && this.dragCurrent) {
+                // Change elastic color based on level
+                const level = this.launcherLevel;
+                ctx.strokeStyle = level > 5 ? '#FFD700' : (level > 2 ? '#E65100' : '#3E2723');
+                ctx.lineWidth = 4 + Math.min(6, level); // Thicker elastic
+                
+                ctx.beginPath(); ctx.moveTo(x-20, y-30); ctx.lineTo(this.dragCurrent.x, this.dragCurrent.y); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(x+20, y-30); ctx.lineTo(this.dragCurrent.x, this.dragCurrent.y); ctx.stroke();
+                
+                // Reset for wood
+                ctx.strokeStyle = '#5D4037'; ctx.lineWidth = 6;
+            }
+            ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x+20, y-30); ctx.stroke();
+        }
+    }
+
+    drawObstacle(ctx, ob) {
+        if (ob.x < this.cameraX - 100 || ob.x > this.cameraX + CONFIG.width + 100) return;
+        
+        ctx.save();
+        ctx.translate(ob.x + ob.w/2, ob.y + ob.h/2);
+        ctx.rotate(ob.rotation);
+        
+        if (ob.hp < ob.maxHp) {
+            ctx.rotate((Math.random()-0.5) * 0.05);
+        }
+
+        if (ob.type === 99) { // Cage
+            ctx.strokeStyle = '#FFD700';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(-ob.w/2, -ob.h/2, ob.w, ob.h);
+            ctx.beginPath();
+            ctx.moveTo(-10, -ob.h/2); ctx.lineTo(-10, ob.h/2);
+            ctx.moveTo(10, -ob.h/2); ctx.lineTo(10, ob.h/2);
+            ctx.stroke();
+            if (this.state !== 'LEVEL_END') {
+                 ctx.fillStyle = 'red';
+                 ctx.font = '20px Arial';
+                 ctx.fillText('👑', -10, 5);
+            }
+        } 
+        else if (ob.type === 9 || ob.type === 10) { // Can
+            ctx.fillStyle = ob.getColor();
+            ctx.beginPath();
+            ctx.roundRect(-ob.w/2, -ob.h/2, ob.w, ob.h, 5);
+            ctx.fill();
+            ctx.strokeStyle = '#FBC02D';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            ctx.fillStyle = '#F57F17';
+            ctx.font = (ob.type===10 ? '30px' : '20px') + ' Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const face = ob.hp < ob.maxHp/2 ? '🙀' : '😼';
+            ctx.fillText(face, 0, 0);
+            
+            ctx.fillStyle = ob.getColor();
+            ctx.beginPath(); 
+            ctx.moveTo(-ob.w/2, -ob.h/2); ctx.lineTo(-ob.w/2 + 5, -ob.h/2-10); ctx.lineTo(-ob.w/2 + 15, -ob.h/2); ctx.fill();
+            ctx.beginPath(); 
+            ctx.moveTo(ob.w/2, -ob.h/2); ctx.lineTo(ob.w/2 - 5, -ob.h/2-10); ctx.lineTo(ob.w/2 - 15, -ob.h/2); ctx.fill();
+
+        } else { // Blocks
+            ctx.fillStyle = ob.getColor();
+            ctx.fillRect(-ob.w/2, -ob.h/2, ob.w, ob.h);
+            ctx.strokeStyle = "rgba(0,0,0,0.2)";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(-ob.w/2, -ob.h/2, ob.w, ob.h);
+            
+            if (ob.hp < ob.maxHp * 0.7) {
+                ctx.beginPath(); ctx.moveTo(-10, -10); ctx.lineTo(10, 10); ctx.stroke();
+            }
+        }
+        ctx.restore();
+    }
+
+    drawCat(ctx, cat) {
+        const x = cat.x;
+        const y = cat.y;
+        const r = cat.radius || 15;
+        
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(cat.rotation);
+        
+        // Body
+        ctx.fillStyle = cat.color;
+        ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = '#333'; ctx.lineWidth = 2; ctx.stroke();
+        
+        if(cat.pattern === 'cow') {
+            ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(-5, -5, 6, 0, Math.PI*2); ctx.fill();
+        } else if (cat.pattern === 'stripe') {
+            ctx.beginPath(); ctx.moveTo(-r, -5); ctx.lineTo(r, -5); ctx.stroke();
+        }
+
+        ctx.fillStyle = '#FFF';
+        ctx.beginPath(); ctx.arc(-5, -2, 4, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(5, -2, 4, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#000';
+        ctx.beginPath(); ctx.arc(-5, -2, 1.5, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(5, -2, 1.5, 0, Math.PI*2); ctx.fill();
+
+        if (cat.skillUsed && this.state === 'FLY') {
+             ctx.strokeStyle = 'yellow';
+             ctx.globalAlpha = 0.5;
+             ctx.lineWidth = 3;
+             ctx.beginPath(); ctx.arc(0, 0, r+5, 0, Math.PI*2); ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+
+    loop(t) {
+        const dt = t - this.lastTime;
+        this.lastTime = t;
+        
+        if (this.state !== 'MENU') {
+            this.update(dt);
+        }
+        this.draw();
+        requestAnimationFrame(tm => this.loop(tm));
+    }
+}
+
+// Start
+var game;
+window.onload = () => {
+    game = new Game();
+};
+
+</script>
+</body>
+</html>
