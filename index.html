@@ -221,6 +221,7 @@
                 <button class="menu-btn" onclick="location.reload()">🏠 選單</button>
                 <span>💰 <span id="moneyDisplay" class="money-text">0</span></span>
             </div>
+            <div class="hud-box">🏆 最高: <span id="highScoreDisplay">0</span></div>
             <div class="hud-box" id="levelDisplayBox">關卡: <span id="levelDisplay">1</span></div>
         </div>
         <div style="display:flex; flex-direction:column; align-items:flex-end;">
@@ -238,6 +239,7 @@
         <div class="panel">
             <h1>👑 Queen Meow 的救援作戰</h1>
             <p>累積金幣，升級裝備，推倒更巨大的罐頭塔！</p>
+            <div style="font-size:0.9em; color:#e65100; margin-bottom: 10px;">🏆 個人最高紀錄: <span id="startHighScore">0</span></div>
             
             <div class="upgrade-box">
                 <div style="font-size:0.9em; margin-bottom:5px;">彈射器等級: <span id="startLauncherLv">1</span></div>
@@ -258,6 +260,7 @@
             <h1 id="resultTitle">關卡完成!</h1>
             <p id="resultMsg">女王獲救了!</p>
             <h2 id="resultScore">0</h2>
+            <p id="newRecordMsg" style="color:red; font-weight:bold; display:none;">✨ 新紀錄! ✨</p>
             
             <div class="upgrade-box">
                 <div style="font-size:0.9em;">強化你的貓咪彈射器！</div>
@@ -287,7 +290,7 @@
 <script>
 /**
  * Cat Can Rescue: Queen Meow's Rescue Operation
- * Features: Physics, Entity System, Money/Upgrade System, LocalStorage Persistence
+ * Features: Physics, Entity System, Money/Upgrade System, LocalStorage Persistence, High Scores
  */
 
 // --- 1. CONFIG & DATA ---
@@ -589,6 +592,7 @@ class Game {
         // Economy & Upgrade System
         this.money = 0;
         this.launcherLevel = 1;
+        this.highScore = 0; // Added High Score
         this.loadSave();
         
         this.resize();
@@ -606,16 +610,31 @@ class Game {
             const data = JSON.parse(saved);
             this.money = data.money || 0;
             this.launcherLevel = data.launcherLevel || 1;
+            this.highScore = data.highScore || 0; // Load high score
         }
     }
 
     saveData() {
         const data = {
             money: this.money,
-            launcherLevel: this.launcherLevel
+            launcherLevel: this.launcherLevel,
+            highScore: this.highScore // Save high score
         };
         localStorage.setItem('catRescueData', JSON.stringify(data));
         this.updateUI();
+    }
+
+    checkHighScore() {
+        if (this.score > this.highScore) {
+            this.highScore = this.score;
+            this.saveData();
+            
+            // Show new record message
+            const msg = document.getElementById('newRecordMsg');
+            if(msg) msg.style.display = 'block';
+            return true;
+        }
+        return false;
     }
 
     addMoney(amount, x, y) {
@@ -670,6 +689,11 @@ class Game {
         this.mode = modeName;
         this.levelIdx = 0;
         this.score = 0;
+        
+        // Hide new record msg
+        const msg = document.getElementById('newRecordMsg');
+        if(msg) msg.style.display = 'none';
+
         document.getElementById('startScreen').classList.add('hidden');
         document.getElementById('hud').classList.remove('hidden');
         
@@ -1107,6 +1131,7 @@ class Game {
         
         // Bonus Money for level clear
         this.addMoney(1000); 
+        this.checkHighScore(); // Check high score
 
         setTimeout(() => {
             document.getElementById('resultScreen').classList.remove('hidden');
@@ -1133,6 +1158,7 @@ class Game {
     }
 
     failLevel() {
+        this.checkHighScore(); // Check high score
         document.getElementById('resultScreen').classList.remove('hidden');
         document.getElementById('hud').classList.add('hidden');
         document.getElementById('resultTitle').innerText = "救援失敗...";
@@ -1143,6 +1169,7 @@ class Game {
     }
 
     endGameDistance() {
+        this.checkHighScore(); // Check high score
         document.getElementById('resultScreen').classList.remove('hidden');
         document.getElementById('hud').classList.add('hidden');
         document.getElementById('resultTitle').innerText = "花園之旅結束";
@@ -1172,7 +1199,6 @@ class Game {
 
     updateUI() {
         // Update Money Displays
-        // Safely check if elements exist before updating
         const moneyEl = document.getElementById('moneyDisplay');
         if (moneyEl) moneyEl.innerText = this.money;
         
@@ -1185,6 +1211,13 @@ class Game {
         // Update Launcher Info
         const launcherLvEl = document.getElementById('startLauncherLv');
         if (launcherLvEl) launcherLvEl.innerText = this.launcherLevel;
+        
+        // Update High Score Display
+        const highScoreEl = document.getElementById('highScoreDisplay');
+        if (highScoreEl) highScoreEl.innerText = this.highScore;
+
+        const startHighScoreEl = document.getElementById('startHighScore');
+        if (startHighScoreEl) startHighScoreEl.innerText = this.highScore;
         
         // Update Buttons
         const cost = this.getUpgradeCost();
