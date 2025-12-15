@@ -126,7 +126,7 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.3);
             border: 4px solid var(--primary-color);
             max-width: 95%;
-            width: 500px;
+            width: 550px; /* Widened for better upgrade layout */
             animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             position: relative;
             max-height: 90vh;
@@ -289,6 +289,8 @@
             </div>
             <div class="hud-box">🏆 最高: <span id="highScoreDisplay">0</span></div>
             <div class="hud-box" id="levelDisplayBox">關卡: <span id="levelDisplay">1</span></div>
+            <!-- Distance HUD -->
+            <div class="hud-box hidden" id="distanceBox">總距離: <span id="totalDistDisplay">0</span>m</div>
         </div>
         <div style="display:flex; flex-direction:column; align-items:flex-end;">
             <div class="hud-box">貓咪: <span id="catCountDisplay">0</span></div>
@@ -366,11 +368,25 @@
             
             <div style="font-size:0.9em; color:#666;">持有金幣: 💰<span id="resultMoneyDisplay">0</span></div>
 
-            <div id="nextLevelControls" style="display: flex; justify-content: center; gap: 10px; margin-top: 15px;">
-                <button id="nextLevelBtn" class="hidden" onclick="game.nextLevel()">下一關</button>
-                <button id="retryLevelBtn" class="hidden" onclick="game.retryLevel()">重試本關</button>
+            <!-- Result Screen Upgrades -->
+            <div class="upgrade-section">
+                <h3>🛠️ 戰地升級 (Lv.<span id="resultLauncherLv">1</span>)</h3>
+                <button id="resultUpgradeBtn" class="launcher-btn" onclick="game.buyLauncherUpgrade()">
+                    強化彈力 ($500)
+                </button>
             </div>
-            <button class="secondary" onclick="location.reload()">回主選單/升級</button>
+            <div class="upgrade-section">
+                <h3>🐱 貓咪特訓 (點擊升級)</h3>
+                <div class="cat-upgrade-list" id="resultCatUpgradeList">
+                    <!-- JS 生成 -->
+                </div>
+            </div>
+
+            <div id="nextLevelControls" style="display: flex; justify-content: center; gap: 10px; margin-top: 15px;">
+                <button id="nextLevelBtn" class="hidden" onclick="game.nextLevel()">下一關 ➡</button>
+                <button id="retryLevelBtn" class="hidden" onclick="game.retryLevel()">重試本關 ↺</button>
+            </div>
+            <button class="secondary" onclick="location.reload()">放棄並回主選單</button>
         </div>
     </div>
 
@@ -387,7 +403,7 @@
 <script>
 /**
  * Cat Can Rescue: Queen Meow's Rescue Operation
- * Features: Infinite Procedural Levels, Cat Growth, Leaderboard, Individual Cat Skill Upgrades
+ * Features: Infinite Levels, Cat Growth, Leaderboard, In-Game Upgrades, Distance Mode
  */
 
 // --- 1. CONFIG & DATA ---
@@ -404,7 +420,6 @@ const CONFIG = {
 };
 
 // 貓咪資料 (半徑已加倍)
-// 新增 upgradeCostBase, skillName
 const CAT_TYPES = [
     { id: 'orange', name: '小橘', color: '#FFB347', mass: 1.0, radius: 30, skill: 'DASH', desc: '技能: 二段加速衝刺', skillName: '極速衝刺', upgradeCostBase: 200 },
     { id: 'black', name: '黑貓', color: '#333333', mass: 1.0, radius: 28, skill: 'CLONE', desc: '技能: 影分身攻擊', skillName: '影分身之術', upgradeCostBase: 250 },
@@ -659,6 +674,7 @@ class Game {
         this.score = 0;
         this.catsUsed = 0;
         this.catsPool = [];
+        this.totalDistance = 0; // For distance mode
         
         // Economy & Upgrade System
         this.money = 0;
@@ -687,7 +703,6 @@ class Game {
             this.launcherLevel = data.launcherLevel || 1;
             this.leaderboard = data.leaderboard || [];
             if (data.catLevels) {
-                // Merge saved levels ensuring all cats exist
                 this.catLevels = { ...this.catLevels, ...data.catLevels };
             }
             if(data.lastPlayerName) document.getElementById('playerNameInput').value = data.lastPlayerName;
@@ -760,7 +775,9 @@ class Game {
 
     addMoney(amount, x, y) {
         this.money += amount;
-        this.score += amount; 
+        if (this.mode === 'RESCUE') {
+            this.score += amount; 
+        }
         this.saveData();
         
         if (x !== undefined && y !== undefined) {
@@ -816,7 +833,6 @@ class Game {
     }
 
     getCatScale() {
-        // Cat grows 10% per level passed
         return 1.0 + (this.levelIdx * 0.1);
     }
 
@@ -841,18 +857,22 @@ class Game {
         this.mode = modeName;
         this.levelIdx = 0;
         this.score = 0;
+        this.totalDistance = 0;
         
         document.getElementById('startScreen').classList.add('hidden');
         document.getElementById('leaderboardScreen').classList.add('hidden');
+        document.getElementById('resultScreen').classList.add('hidden');
         document.getElementById('hud').classList.remove('hidden');
         
         if (modeName === 'RESCUE') {
             document.getElementById('targetDisplayBox').classList.remove('hidden');
             document.getElementById('levelDisplayBox').classList.remove('hidden');
+            document.getElementById('distanceBox').classList.add('hidden');
             this.startLevel(0);
         } else {
             document.getElementById('targetDisplayBox').classList.add('hidden');
             document.getElementById('levelDisplayBox').classList.add('hidden');
+            document.getElementById('distanceBox').classList.remove('hidden');
             this.catsPool = [...CAT_TYPES]; 
             this.obstacles = [];
             this.startTurn();
@@ -913,7 +933,6 @@ class Game {
             const el = document.createElement('div');
             el.className = 'cat-card';
             el.style.borderColor = cat.color;
-            // Add level badge
             const lv = this.catLevels[cat.id];
             el.innerHTML = `
                 <div style="font-size:24px;">🐱</div>
@@ -925,7 +944,6 @@ class Game {
                 el.classList.add('selected');
                 this.selectedCatType = cat;
                 this.selectedCatIdx = i; 
-                // Dynamic description based on level
                 desc.innerText = `${cat.desc} (Lv.${lv})`;
                 btn.disabled = false;
             };
@@ -936,7 +954,6 @@ class Game {
             if (this.selectedCatType) {
                 this.catsPool.splice(this.selectedCatIdx, 1);
                 
-                // Apply Growth
                 const scale = this.getCatScale();
                 
                 this.cat = {
@@ -1041,15 +1058,13 @@ class Game {
         document.getElementById('skill-indicator').style.display = 'none';
         
         const s = this.cat.skill;
-        const lv = this.catLevels[this.cat.id]; // Get current level
+        const lv = this.catLevels[this.cat.id]; 
 
         if (s === 'DASH') {
-            // Level scales speed
             this.cat.vx *= (1.8 + lv * 0.2); 
             this.addEffect(this.cat.x, this.cat.y, 'burst');
         } 
         else if (s === 'CLONE') {
-            // Level scales clone count
             const count = 2 + Math.floor(lv / 2);
             for(let i=0; i<count; i++) {
                 const p1 = new Particle(this.cat.x, this.cat.y + (i*10-10), '#333', 0);
@@ -1058,36 +1073,27 @@ class Game {
             }
         } 
         else if (s === 'FLOWER_BOMB') {
-            // Level increases flowers, now explosive!
             this.audio.playExplosion();
             const count = 8 + lv * 2;
             for(let i=0; i<count; i++) {
                 const f = {x: this.cat.x + (Math.random()-0.5)*150, y: this.cat.y + (Math.random()-0.5)*150, scale:0, targetScale:1, color:'red', type: 'bomb'};
-                // Push nearby objects away logic would be complex here, so we simulate by making flowers spawn with force
                 this.flowers.push(f);
-                // Create explosion particles
                 const p = new Particle(this.cat.x, this.cat.y, 'orange', 10);
                 p.life = 20;
                 this.particles.push(p);
             }
-            // Add slight backward force to obstacles near explosion? (Simplified physics: not implemented for simplicity, just visual + bonus score)
         } 
         else if (s === 'DRILL') {
-            // Level scales mass
             this.cat.mass *= (2 + lv * 0.5); 
         } 
         else if (s === 'GIANT') {
-            // Level scales size massively
-            this.cat.radius *= (1 + lv * 0.3); // Lv 5 = 2.5x size
+            this.cat.radius *= (1 + lv * 0.3); 
             this.cat.mass *= (1 + lv * 0.5); 
-            this.audio.playExplosion(); // Big sound
+            this.audio.playExplosion(); 
         } 
         else if (s === 'QUAKE') {
             this.cat.quakeReady = true; 
-            this.cat.quakeLevel = lv; // Store level for impact
-        }
-        else if (s === 'STEER') {
-            // No instant effect, but enhances control in update loop (could be implemented there)
+            this.cat.quakeLevel = lv; 
         }
     }
 
@@ -1110,19 +1116,14 @@ class Game {
             }
 
             if (this.gameFrame % 4 === 0 && Math.abs(this.cat.vx) > 3) {
-                const colors = ['red', 'orange', 'yellow', 'green', 'blue', 'indigo', 'violet'];
-                const p = new Particle(this.cat.x, this.cat.y, colors[Math.floor(Math.random()*colors.length)], 2);
+                // Visual effect for high speed
+                const p = new Particle(this.cat.x, this.cat.y, 'rgba(255,255,255,0.5)', 2);
                 this.particles.push(p);
             }
 
             let drag = CONFIG.airDrag;
             if (this.cat.skill === 'DRILL' && this.cat.skillUsed) drag = 1.0; 
             
-            // White Cat Steering Boost based on Level
-            if (this.cat.skill === 'STEER' && this.cat.skillUsed) {
-                // Not implemented via keys here for brevity, but could add vx boost
-            }
-
             this.cat.vx *= drag;
             this.cat.vy *= drag;
             this.cat.vy += CONFIG.gravity * this.cat.mass;
@@ -1141,7 +1142,6 @@ class Game {
                     this.cat.quakeReady = false;
                     this.shakeObstacles();
                     this.audio.playBreak();
-                    // Additional quake effect based on level could go here
                 }
 
                 if (Math.abs(this.cat.vx) > 1) {
@@ -1304,6 +1304,24 @@ class Game {
     }
 
     resolveTurn() {
+        // Distance Calculation
+        if (this.mode === 'DISTANCE' && this.cat) {
+            const dist = Math.floor((this.cat.x - this.slingX) * CONFIG.meterScale);
+            if (dist > 0) {
+                this.score += dist; // Add to score
+                this.totalDistance += dist; // Track for HUD
+                this.addMoney(Math.floor(dist/10), this.cat.x, this.cat.y - 50);
+                
+                // Landing Mark
+                const p = new Particle(this.cat.x, CONFIG.height-100, '#000', 0);
+                p.isText = true;
+                p.text = `${dist}m`;
+                p.life = 200; // Stay longer
+                p.vy = -0.5; // Float up slowly
+                this.particles.push(p);
+            }
+        }
+
         this.cat = null; 
         
         if (this.mode === 'RESCUE') {
@@ -1373,6 +1391,7 @@ class Game {
         document.getElementById('resultScreen').classList.remove('hidden');
         document.getElementById('hud').classList.add('hidden');
         document.getElementById('resultTitle').innerText = "花園之旅結束";
+        document.getElementById('resultMsg').innerText = `總飛行距離: ${this.totalDistance}m`;
         document.getElementById('resultScore').innerText = `得分: ${this.score}`;
         
         document.getElementById('nextLevelBtn').classList.add('hidden');
@@ -1417,11 +1436,16 @@ class Game {
         
         const launcherLvEl = document.getElementById('startLauncherLv');
         if (launcherLvEl) launcherLvEl.innerText = this.launcherLevel;
+        const resultLauncherLvEl = document.getElementById('resultLauncherLv');
+        if (resultLauncherLvEl) resultLauncherLvEl.innerText = this.launcherLevel;
         
         const highScoreEl = document.getElementById('highScoreDisplay');
         let topScore = 0;
         if(this.leaderboard.length > 0) topScore = this.leaderboard[0].score;
         if (highScoreEl) highScoreEl.innerText = topScore;
+        
+        const totalDistDisplay = document.getElementById('totalDistDisplay');
+        if(totalDistDisplay) totalDistDisplay.innerText = this.totalDistance;
 
         const cost = this.getLauncherCost();
         const text = `強化彈力 ($${cost})`;
@@ -1438,28 +1462,13 @@ class Game {
             resultUpgradeBtn.disabled = this.money < cost;
         }
 
-        // Generate Cat Upgrade List
+        // Generate Cat Upgrade List (Start Screen)
         const list = document.getElementById('catUpgradeList');
-        if (list) {
-            list.innerHTML = '';
-            CAT_TYPES.forEach(cat => {
-                const lv = this.catLevels[cat.id];
-                const upgradeCost = this.getCatUpgradeCost(cat.id);
-                const affordable = this.money >= upgradeCost;
-                
-                const item = document.createElement('div');
-                item.className = `cat-upgrade-item ${affordable ? 'affordable' : ''}`;
-                item.innerHTML = `
-                    <div class="cat-icon">🐱</div>
-                    <div class="cat-skill-name" style="color:${cat.color}">${cat.skillName}</div>
-                    <div style="font-size:0.8em; color:#666;">Lv.${lv}</div>
-                    <button class="upgrade-mini-btn" ${!affordable ? 'disabled' : ''} onclick="game.buyCatUpgrade('${cat.id}')">
-                        $${upgradeCost}
-                    </button>
-                `;
-                list.appendChild(item);
-            });
-        }
+        this.renderCatUpgradeList(list);
+        
+        // Generate Cat Upgrade List (Result Screen)
+        const resultList = document.getElementById('resultCatUpgradeList');
+        this.renderCatUpgradeList(resultList);
 
         const scoreEl = document.getElementById('scoreDisplay');
         if (scoreEl) scoreEl.innerText = this.score;
@@ -1471,6 +1480,28 @@ class Game {
         if (this.mode === 'RESCUE' && canDisplayEl) {
             canDisplayEl.innerText = this.cansLeft;
         }
+    }
+    
+    renderCatUpgradeList(container) {
+        if (!container) return;
+        container.innerHTML = '';
+        CAT_TYPES.forEach(cat => {
+            const lv = this.catLevels[cat.id];
+            const upgradeCost = this.getCatUpgradeCost(cat.id);
+            const affordable = this.money >= upgradeCost;
+            
+            const item = document.createElement('div');
+            item.className = `cat-upgrade-item ${affordable ? 'affordable' : ''}`;
+            item.innerHTML = `
+                <div class="cat-icon">🐱</div>
+                <div class="cat-skill-name" style="color:${cat.color}">${cat.skillName}</div>
+                <div style="font-size:0.8em; color:#666;">Lv.${lv}</div>
+                <button class="upgrade-mini-btn" ${!affordable ? 'disabled' : ''} onclick="game.buyCatUpgrade('${cat.id}')">
+                    $${upgradeCost}
+                </button>
+            `;
+            container.appendChild(item);
+        });
     }
 
     updateHUD() {
