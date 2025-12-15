@@ -245,6 +245,7 @@
                 <button class="menu-btn" onclick="location.reload()">🏠 選單</button>
                 <span>💰 <span id="moneyDisplay" class="money-text">0</span></span>
             </div>
+            <div class="hud-box">🏆 最高: <span id="highScoreDisplay">0</span></div>
             <div class="hud-box" id="levelDisplayBox">關卡: <span id="levelDisplay">1</span></div>
         </div>
         <div style="display:flex; flex-direction:column; align-items:flex-end;">
@@ -313,6 +314,7 @@
             <h1 id="resultTitle">關卡完成!</h1>
             <p id="resultMsg">女王獲救了!</p>
             <h2 id="resultScore">0</h2>
+            <p id="newRecordMsg" style="color:red; font-weight:bold; display:none;">✨ 新紀錄! ✨</p>
             
             <div class="upgrade-box">
                 <div style="font-size:0.9em;">強化你的貓咪彈射器！</div>
@@ -349,24 +351,24 @@
 const CONFIG = {
     gravity: 0.25,
     groundFriction: 0.95,
-    airDrag: 0.995,
+    airDrag: 0.998, // Reduced drag for longer flight (was 0.995)
     stopVelocity: 0.15,
     meterScale: 0.1,
     debug: false,
-    basePower: 0.15, 
+    basePower: 0.22, // Increased power (was 0.15) for longer range
     width: 0, 
     height: 0
 };
 
 // 貓咪資料 (半徑已加倍)
 const CAT_TYPES = [
-    { id: 'orange', name: '小橘', color: '#FFB347', mass: 1.0, radius: 30, skill: 'DASH', desc: '技能: 二段加速衝刺' }, // 15 -> 30
-    { id: 'black', name: '黑貓', color: '#333333', mass: 1.0, radius: 28, skill: 'CLONE', desc: '技能: 影分身攻擊' }, // 14 -> 28
-    { id: 'cow', name: '乳牛', color: '#EEEEEE', pattern: 'cow', mass: 1.3, radius: 32, skill: 'QUAKE', desc: '技能: 落地大地震' }, // 16 -> 32
-    { id: 'calico', name: '三花', color: '#FFFFFF', pattern: 'calico', mass: 1.0, radius: 30, skill: 'FLOWER_BOMB', desc: '技能: 空中灑花爆擊' }, // 15 -> 30
-    { id: 'tabby', name: '虎斑', color: '#A0A0A0', pattern: 'stripe', mass: 1.4, radius: 32, skill: 'DRILL', desc: '技能: 鑽頭滾動 (低摩擦)' }, // 16 -> 32
-    { id: 'white', name: '白貓', color: '#F0F8FF', mass: 0.8, radius: 26, skill: 'STEER', desc: '技能: 柔風轉向 (滑鼠/按鍵控制)' }, // 13 -> 26
-    { id: 'chubby', name: '胖胖', color: '#FFD1DC', mass: 2.0, radius: 44, skill: 'GIANT', desc: '技能: 巨大化撞擊' }  // 22 -> 44
+    { id: 'orange', name: '小橘', color: '#FFB347', mass: 1.0, radius: 30, skill: 'DASH', desc: '技能: 二段加速衝刺' }, 
+    { id: 'black', name: '黑貓', color: '#333333', mass: 1.0, radius: 28, skill: 'CLONE', desc: '技能: 影分身攻擊' }, 
+    { id: 'cow', name: '乳牛', color: '#EEEEEE', pattern: 'cow', mass: 1.3, radius: 32, skill: 'QUAKE', desc: '技能: 落地大地震' }, 
+    { id: 'calico', name: '三花', color: '#FFFFFF', pattern: 'calico', mass: 1.0, radius: 30, skill: 'FLOWER_BOMB', desc: '技能: 空中灑花爆擊' }, 
+    { id: 'tabby', name: '虎斑', color: '#A0A0A0', pattern: 'stripe', mass: 1.4, radius: 32, skill: 'DRILL', desc: '技能: 鑽頭滾動 (低摩擦)' }, 
+    { id: 'white', name: '白貓', color: '#F0F8FF', mass: 0.8, radius: 26, skill: 'STEER', desc: '技能: 柔風轉向 (滑鼠/按鍵控制)' }, 
+    { id: 'chubby', name: '胖胖', color: '#FFD1DC', mass: 2.0, radius: 44, skill: 'GIANT', desc: '技能: 巨大化撞擊' } 
 ];
 
 // Helper variables for Can Sizes
@@ -374,70 +376,70 @@ const CAN_W = 70;
 const CAN_H = 70; 
 const BASE_H = 40; 
 
-// 關卡資料 
+// 關卡資料 (Moved all X coordinates +400 to the right)
 const LEVELS = [
     // Level 1: Basic Stacks (3 layers of BIG cans)
     {
         name: "Lv.1 巨大罐頭疊疊樂",
         entities: [
-            // Base blocks
-            {t:1, x:700, y:0, w:80, h:40}, {t:1, x:850, y:0, w:80, h:40}, {t:1, x:1000, y:0, w:80, h:40},
+            // Base blocks (+400 offset)
+            {t:1, x:1100, y:0, w:80, h:40}, {t:1, x:1250, y:0, w:80, h:40}, {t:1, x:1400, y:0, w:80, h:40},
             // Stack 1 (Raised by 2px increments)
-            {t:9, x:705, y:40+2}, {t:9, x:705, y:40+CAN_H+4}, {t:9, x:705, y:40+CAN_H*2+6},
+            {t:9, x:1105, y:40+2}, {t:9, x:1105, y:40+CAN_H+4}, {t:9, x:1105, y:40+CAN_H*2+6},
             // Stack 2
-            {t:9, x:855, y:40+2}, {t:9, x:855, y:40+CAN_H+4}, {t:9, x:855, y:40+CAN_H*2+6},
+            {t:9, x:1255, y:40+2}, {t:9, x:1255, y:40+CAN_H+4}, {t:9, x:1255, y:40+CAN_H*2+6},
             // Stack 3
-            {t:9, x:1005, y:40+2}, {t:9, x:1005, y:40+CAN_H+4}, {t:9, x:1005, y:40+CAN_H*2+6},
-            {t:99, x:1200, y:0}
+            {t:9, x:1405, y:40+2}, {t:9, x:1405, y:40+CAN_H+4}, {t:9, x:1405, y:40+CAN_H*2+6},
+            {t:99, x:1600, y:0}
         ]
     },
     // Level 2: Pyramid (4 layers)
     {
         name: "Lv.2 罐頭金字塔",
         entities: [
-            {t:1, x:700, y:0, w:300, h:40},
-            {t:9, x:720, y:40+2}, {t:9, x:810, y:40+2}, {t:9, x:900, y:40+2},
-            {t:9, x:765, y:40+CAN_H+4}, {t:9, x:855, y:40+CAN_H+4},
-            {t:9, x:810, y:40+CAN_H*2+6},
-            {t:99, x:1150, y:0}
+            {t:1, x:1100, y:0, w:300, h:40},
+            {t:9, x:1120, y:40+2}, {t:9, x:1210, y:40+2}, {t:9, x:1300, y:40+2},
+            {t:9, x:1165, y:40+CAN_H+4}, {t:9, x:1255, y:40+CAN_H+4},
+            {t:9, x:1210, y:40+CAN_H*2+6},
+            {t:99, x:1550, y:0}
         ]
     },
     // Level 3: Ice Towers (4 layers high)
     {
         name: "Lv.3 冰上巨塔",
         entities: [
-            {t:2, x:650, y:0, w:350, h:40},
-            {t:9, x:700, y:40+2}, {t:9, x:700, y:40+CAN_H+4}, {t:9, x:700, y:40+CAN_H*2+6}, {t:9, x:700, y:40+CAN_H*3+8},
-            {t:9, x:850, y:40+2}, {t:9, x:850, y:40+CAN_H+4}, {t:9, x:850, y:40+CAN_H*2+6}, {t:9, x:850, y:40+CAN_H*3+8},
-            {t:2, x:775, y:120, w:70, h:20}, {t:9, x:775, y:140+2},
-            {t:99, x:1100, y:0}
+            {t:2, x:1050, y:0, w:350, h:40},
+            {t:9, x:1100, y:40+2}, {t:9, x:1100, y:40+CAN_H+4}, {t:9, x:1100, y:40+CAN_H*2+6}, {t:9, x:1100, y:40+CAN_H*3+8},
+            {t:9, x:1250, y:40+2}, {t:9, x:1250, y:40+CAN_H+4}, {t:9, x:1250, y:40+CAN_H*2+6}, {t:9, x:1250, y:40+CAN_H*3+8},
+            {t:2, x:1175, y:120, w:70, h:20}, {t:9, x:1175, y:140+2},
+            {t:99, x:1500, y:0}
         ]
     },
     // Level 4: Stone Walls
     {
         name: "Lv.4 罐頭城牆",
         entities: [
-            {t:3, x:700, y:0, w:60, h:100}, {t:3, x:850, y:0, w:60, h:100}, {t:3, x:1000, y:0, w:60, h:100},
-            {t:9, x:700, y:100+2}, {t:9, x:700, y:100+CAN_H+4},
-            {t:9, x:850, y:100+2}, {t:9, x:850, y:100+CAN_H+4},
-            {t:9, x:1000, y:100+2}, {t:9, x:1000, y:100+CAN_H+4},
-            {t:1, x:680, y:100+CAN_H*2+6, w:400, h:20},
-            {t:9, x:750, y:100+CAN_H*2+20+8}, {t:9, x:850, y:100+CAN_H*2+20+8}, {t:9, x:950, y:100+CAN_H*2+20+8},
-            {t:99, x:1200, y:0}
+            {t:3, x:1100, y:0, w:60, h:100}, {t:3, x:1250, y:0, w:60, h:100}, {t:3, x:1400, y:0, w:60, h:100},
+            {t:9, x:1100, y:100+2}, {t:9, x:1100, y:100+CAN_H+4},
+            {t:9, x:1250, y:100+2}, {t:9, x:1250, y:100+CAN_H+4},
+            {t:9, x:1400, y:100+2}, {t:9, x:1400, y:100+CAN_H+4},
+            {t:1, x:1080, y:100+CAN_H*2+6, w:400, h:20},
+            {t:9, x:1150, y:100+CAN_H*2+20+8}, {t:9, x:1250, y:100+CAN_H*2+20+8}, {t:9, x:1350, y:100+CAN_H*2+20+8},
+            {t:99, x:1600, y:0}
         ]
     },
     // Level 5: Boss Fortress
     {
         name: "Lv.5 終極罐頭王座",
         entities: [
-            {t:3, x:600, y:0, w:60, h:60}, {t:9, x:600, y:60+2}, {t:9, x:600, y:60+CAN_H+4}, {t:9, x:600, y:60+CAN_H*2+6},
             {t:3, x:1000, y:0, w:60, h:60}, {t:9, x:1000, y:60+2}, {t:9, x:1000, y:60+CAN_H+4}, {t:9, x:1000, y:60+CAN_H*2+6},
-            {t:3, x:750, y:0, w:160, h:60},
-            {t:9, x:760, y:60+2}, {t:9, x:870, y:60+2},
-            {t:10, x:815, y:60+2}, 
-            {t:1, x:750, y:200, w:160, h:20},
-            {t:9, x:780, y:220+2}, {t:9, x:850, y:220+2},
-            {t:99, x:1200, y:0}
+            {t:3, x:1400, y:0, w:60, h:60}, {t:9, x:1400, y:60+2}, {t:9, x:1400, y:60+CAN_H+4}, {t:9, x:1400, y:60+CAN_H*2+6},
+            {t:3, x:1150, y:0, w:160, h:60},
+            {t:9, x:1160, y:60+2}, {t:9, x:1270, y:60+2},
+            {t:10, x:1215, y:60+2}, 
+            {t:1, x:1150, y:200, w:160, h:20},
+            {t:9, x:1180, y:220+2}, {t:9, x:1250, y:220+2},
+            {t:99, x:1600, y:0}
         ]
     }
 ];
@@ -630,6 +632,7 @@ class Game {
         this.particles = [];
         this.flowers = [];
         this.cameraX = 0;
+        this.gameFrame = 0;
         
         this.slingX = 150;
         this.slingY = 0; 
@@ -770,7 +773,7 @@ class Game {
     }
 
     getLaunchPower() {
-        // Base 0.15, +10% per extra level
+        // Base 0.15 + upgrade
         return CONFIG.basePower * (1 + (this.launcherLevel - 1) * 0.1);
     }
 
@@ -1010,6 +1013,7 @@ class Game {
     }
 
     update(dt) {
+        this.gameFrame++;
         if (!this.cat && this.state === 'FLY') {
              this.state = 'END_SHOT';
         }
@@ -1024,6 +1028,13 @@ class Game {
                 document.getElementById('skill-indicator').style.display = 'none';
                 this.resolveTurn();
                 return;
+            }
+
+            // Fun: Add rainbow trail while flying fast
+            if (this.gameFrame % 4 === 0 && Math.abs(this.cat.vx) > 3) {
+                const colors = ['red', 'orange', 'yellow', 'green', 'blue', 'indigo', 'violet'];
+                const p = new Particle(this.cat.x, this.cat.y, colors[Math.floor(Math.random()*colors.length)], 2);
+                this.particles.push(p);
             }
 
             let drag = CONFIG.airDrag;
@@ -1316,6 +1327,14 @@ class Game {
         const launcherLvEl = document.getElementById('startLauncherLv');
         if (launcherLvEl) launcherLvEl.innerText = this.launcherLevel;
         
+        // Update High Score Display
+        const highScoreEl = document.getElementById('highScoreDisplay');
+        // Find best score for current player from leaderboard, or overall? User requested separate records.
+        // Let's just show the #1 score overall for now
+        let topScore = 0;
+        if(this.leaderboard.length > 0) topScore = this.leaderboard[0].score;
+        if (highScoreEl) highScoreEl.innerText = topScore;
+
         // Update Buttons
         const cost = this.getUpgradeCost();
         const text = `⬆️ 升級 (Lv.${this.launcherLevel+1}) - $${cost}`;
@@ -1539,23 +1558,53 @@ class Game {
         ctx.translate(x, y);
         ctx.rotate(cat.rotation);
         
+        // Fun Animation: Tail
+        // Simple tail wiggle based on frame
+        const tailAngle = Math.sin(this.gameFrame * 0.5) * 0.5;
+        ctx.save();
+        ctx.strokeStyle = cat.color;
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(-r + 5, 0);
+        ctx.quadraticCurveTo(-r - 10, 0, -r - 15, tailAngle * 10);
+        ctx.stroke();
+        ctx.restore();
+
         // Body
         ctx.fillStyle = cat.color;
         ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
         ctx.strokeStyle = '#333'; ctx.lineWidth = 2; ctx.stroke();
         
         if(cat.pattern === 'cow') {
-            ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(-5, -5, 6, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(-r/3, -r/3, r/2.5, 0, Math.PI*2); ctx.fill();
         } else if (cat.pattern === 'stripe') {
-            ctx.beginPath(); ctx.moveTo(-r, -5); ctx.lineTo(r, -5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-r, -r/3); ctx.lineTo(r, -r/3); ctx.stroke();
         }
 
+        // Fun Animation: Expression
+        // If flying fast, eyes are wide open O_O
+        // Else, normal eyes
+        const speed = Math.hypot(cat.vx || 0, cat.vy || 0);
+        const isFlyingFast = speed > 5;
+
+        // Eyes
         ctx.fillStyle = '#FFF';
-        ctx.beginPath(); ctx.arc(-5, -2, 4, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.arc(5, -2, 4, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#000';
-        ctx.beginPath(); ctx.arc(-5, -2, 1.5, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.arc(5, -2, 1.5, 0, Math.PI*2); ctx.fill();
+        if (isFlyingFast) {
+            // Wide open eyes
+            ctx.beginPath(); ctx.arc(-r/3, -r/5, r/4, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(r/3, -r/5, r/4, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.arc(-r/3, -r/5, r/10, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(r/3, -r/5, r/10, 0, Math.PI*2); ctx.fill();
+        } else {
+            // Normal / Happy eyes
+            ctx.beginPath(); ctx.arc(-r/3, -r/5, r/5, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(r/3, -r/5, r/5, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.arc(-r/3, -r/5, r/10, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(r/3, -r/5, r/10, 0, Math.PI*2); ctx.fill();
+        }
 
         if (cat.skillUsed && this.state === 'FLY') {
              ctx.strokeStyle = 'yellow';
