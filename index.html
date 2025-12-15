@@ -324,8 +324,9 @@
                 <div style="font-size:0.8em; color:#666;">持有金幣: 💰<span id="resultMoneyDisplay">0</span></div>
             </div>
 
-            <div id="nextLevelControls">
-                <button id="nextLevelBtn">下一關</button>
+            <div id="nextLevelControls" style="display: flex; justify-content: center; gap: 10px;">
+                <button id="nextLevelBtn" class="hidden" onclick="game.nextLevel()">下一關</button>
+                <button id="retryLevelBtn" class="hidden" onclick="game.retryLevel()">重試本關</button>
             </div>
             <button class="secondary" onclick="location.reload()">回主選單</button>
         </div>
@@ -344,23 +345,23 @@
 <script>
 /**
  * Cat Can Rescue: Queen Meow's Rescue Operation
- * Features: Physics, Entity System, Money/Upgrade System, LocalStorage Persistence, Detailed Leaderboard
+ * Features: Infinite Procedural Levels, Cat Growth, Leaderboard, Stable UI
  */
 
 // --- 1. CONFIG & DATA ---
 const CONFIG = {
     gravity: 0.25,
     groundFriction: 0.95,
-    airDrag: 0.998, // Reduced drag for longer flight (was 0.995)
+    airDrag: 0.998,
     stopVelocity: 0.15,
     meterScale: 0.1,
     debug: false,
-    basePower: 0.22, // Increased power (was 0.15) for longer range
+    basePower: 0.22, 
     width: 0, 
     height: 0
 };
 
-// 貓咪資料 (半徑已加倍)
+// 基礎貓咪資料
 const CAT_TYPES = [
     { id: 'orange', name: '小橘', color: '#FFB347', mass: 1.0, radius: 30, skill: 'DASH', desc: '技能: 二段加速衝刺' }, 
     { id: 'black', name: '黑貓', color: '#333333', mass: 1.0, radius: 28, skill: 'CLONE', desc: '技能: 影分身攻擊' }, 
@@ -371,78 +372,58 @@ const CAT_TYPES = [
     { id: 'chubby', name: '胖胖', color: '#FFD1DC', mass: 2.0, radius: 44, skill: 'GIANT', desc: '技能: 巨大化撞擊' } 
 ];
 
-// Helper variables for Can Sizes
 const CAN_W = 70; 
 const CAN_H = 70; 
 const BASE_H = 40; 
 
-// 關卡資料 (Moved all X coordinates +400 to the right)
-const LEVELS = [
-    // Level 1: Basic Stacks (3 layers of BIG cans)
-    {
-        name: "Lv.1 巨大罐頭疊疊樂",
-        entities: [
-            // Base blocks (+400 offset)
-            {t:1, x:1100, y:0, w:80, h:40}, {t:1, x:1250, y:0, w:80, h:40}, {t:1, x:1400, y:0, w:80, h:40},
-            // Stack 1 (Raised by 2px increments)
-            {t:9, x:1105, y:40+2}, {t:9, x:1105, y:40+CAN_H+4}, {t:9, x:1105, y:40+CAN_H*2+6},
-            // Stack 2
-            {t:9, x:1255, y:40+2}, {t:9, x:1255, y:40+CAN_H+4}, {t:9, x:1255, y:40+CAN_H*2+6},
-            // Stack 3
-            {t:9, x:1405, y:40+2}, {t:9, x:1405, y:40+CAN_H+4}, {t:9, x:1405, y:40+CAN_H*2+6},
-            {t:99, x:1600, y:0}
-        ]
-    },
-    // Level 2: Pyramid (4 layers)
-    {
-        name: "Lv.2 罐頭金字塔",
-        entities: [
-            {t:1, x:1100, y:0, w:300, h:40},
-            {t:9, x:1120, y:40+2}, {t:9, x:1210, y:40+2}, {t:9, x:1300, y:40+2},
-            {t:9, x:1165, y:40+CAN_H+4}, {t:9, x:1255, y:40+CAN_H+4},
-            {t:9, x:1210, y:40+CAN_H*2+6},
-            {t:99, x:1550, y:0}
-        ]
-    },
-    // Level 3: Ice Towers (4 layers high)
-    {
-        name: "Lv.3 冰上巨塔",
-        entities: [
-            {t:2, x:1050, y:0, w:350, h:40},
-            {t:9, x:1100, y:40+2}, {t:9, x:1100, y:40+CAN_H+4}, {t:9, x:1100, y:40+CAN_H*2+6}, {t:9, x:1100, y:40+CAN_H*3+8},
-            {t:9, x:1250, y:40+2}, {t:9, x:1250, y:40+CAN_H+4}, {t:9, x:1250, y:40+CAN_H*2+6}, {t:9, x:1250, y:40+CAN_H*3+8},
-            {t:2, x:1175, y:120, w:70, h:20}, {t:9, x:1175, y:140+2},
-            {t:99, x:1500, y:0}
-        ]
-    },
-    // Level 4: Stone Walls
-    {
-        name: "Lv.4 罐頭城牆",
-        entities: [
-            {t:3, x:1100, y:0, w:60, h:100}, {t:3, x:1250, y:0, w:60, h:100}, {t:3, x:1400, y:0, w:60, h:100},
-            {t:9, x:1100, y:100+2}, {t:9, x:1100, y:100+CAN_H+4},
-            {t:9, x:1250, y:100+2}, {t:9, x:1250, y:100+CAN_H+4},
-            {t:9, x:1400, y:100+2}, {t:9, x:1400, y:100+CAN_H+4},
-            {t:1, x:1080, y:100+CAN_H*2+6, w:400, h:20},
-            {t:9, x:1150, y:100+CAN_H*2+20+8}, {t:9, x:1250, y:100+CAN_H*2+20+8}, {t:9, x:1350, y:100+CAN_H*2+20+8},
-            {t:99, x:1600, y:0}
-        ]
-    },
-    // Level 5: Boss Fortress
-    {
-        name: "Lv.5 終極罐頭王座",
-        entities: [
-            {t:3, x:1000, y:0, w:60, h:60}, {t:9, x:1000, y:60+2}, {t:9, x:1000, y:60+CAN_H+4}, {t:9, x:1000, y:60+CAN_H*2+6},
-            {t:3, x:1400, y:0, w:60, h:60}, {t:9, x:1400, y:60+2}, {t:9, x:1400, y:60+CAN_H+4}, {t:9, x:1400, y:60+CAN_H*2+6},
-            {t:3, x:1150, y:0, w:160, h:60},
-            {t:9, x:1160, y:60+2}, {t:9, x:1270, y:60+2},
-            {t:10, x:1215, y:60+2}, 
-            {t:1, x:1150, y:200, w:160, h:20},
-            {t:9, x:1180, y:220+2}, {t:9, x:1250, y:220+2},
-            {t:99, x:1600, y:0}
-        ]
+// --- Dynamic Level Generator ---
+function generateLevelData(levelIndex) {
+    const levelNum = levelIndex + 1;
+    // 每一關往後退 150px
+    const startX = 1000 + (levelIndex * 150); 
+    
+    // 難度參數
+    const numStacks = 3 + Math.floor(levelIndex / 3); // 每3關多一座塔
+    const stackHeight = 3 + Math.floor(levelIndex / 4); // 每4關多一層
+    
+    let entities = [];
+
+    // 產生塔
+    for (let i = 0; i < numStacks; i++) {
+        const stackX = startX + (i * 160); // 塔的間距
+        // 底座
+        entities.push({t: (i%3)+1, x: stackX, y: 0, w: 80, h: 40});
+        
+        // 往上疊罐頭
+        for(let h = 0; h < stackHeight; h++) {
+            // 垂直微調避免一開始就重疊
+            const yPos = 40 + h * (CAN_H) + (h * 4) + 2; 
+            
+            // 雙排或單排
+            if (h % 2 === 0) {
+                // 單
+                entities.push({t: 9, x: stackX + 5, y: yPos});
+            } else {
+                // 雙 (如果夠寬)
+                entities.push({t: 9, x: stackX - 20, y: yPos});
+                entities.push({t: 9, x: stackX + 30, y: yPos});
+            }
+        }
     }
-];
+
+    // Boss 關卡 (每5關)
+    if (levelNum % 5 === 0) {
+        entities.push({t: 10, x: startX + (numStacks * 160) / 2, y: stackHeight * 80}); // Boss在中間上方
+    }
+
+    // 籠子在最後面
+    entities.push({t: 99, x: startX + numStacks * 160 + 200, y: 0});
+
+    return {
+        name: `Lv.${levelNum} 遠征救援`,
+        entities: entities
+    };
+}
 
 // --- 2. AUDIO SYSTEM ---
 class AudioController {
@@ -482,7 +463,7 @@ class AudioController {
         [0, 200, 400, 600].forEach((d, i) => setTimeout(() => this.playTone(400 + i*100, 'triangle', 0.3, 0.2), d));
     }
     playSkill() { this.playTone(800, 'sine', 0.4, 0.2, -400); }
-    playCoin() { this.playTone(1200, 'sine', 0.1, 0.1); setTimeout(()=>this.playTone(1600, 'sine', 0.1, 0.1), 50); } // Ka-ching!
+    playCoin() { this.playTone(1200, 'sine', 0.1, 0.1); setTimeout(()=>this.playTone(1600, 'sine', 0.1, 0.1), 50); } 
     playBuy() { this.playTone(400, 'square', 0.2, 0.2, 200); }
 }
 
@@ -648,7 +629,7 @@ class Game {
         this.money = 0;
         this.launcherLevel = 1;
         this.playerName = "無名貓";
-        this.leaderboard = []; // Array of {name, score, date, time}
+        this.leaderboard = []; 
         this.loadSave();
         
         this.resize();
@@ -672,7 +653,6 @@ class Game {
     }
 
     saveData() {
-        // Get name from input if available
         const nameInput = document.getElementById('playerNameInput');
         if (nameInput && nameInput.value) {
             this.playerName = nameInput.value;
@@ -688,7 +668,6 @@ class Game {
         this.updateUI();
     }
 
-    // Save current score to leaderboard
     saveRecord() {
         if (this.score <= 0) return;
 
@@ -706,9 +685,7 @@ class Game {
         };
 
         this.leaderboard.push(record);
-        // Sort descending by score
         this.leaderboard.sort((a, b) => b.score - a.score);
-        // Keep top 20
         if (this.leaderboard.length > 20) this.leaderboard.pop();
         
         this.saveData();
@@ -740,10 +717,9 @@ class Game {
 
     addMoney(amount, x, y) {
         this.money += amount;
-        this.score += amount; // Score doubles as points
+        this.score += amount; 
         this.saveData();
         
-        // Create Floating Text
         if (x !== undefined && y !== undefined) {
             const p = new Particle(x, y, '', 0);
             p.isText = true;
@@ -764,17 +740,21 @@ class Game {
             this.launcherLevel++;
             this.audio.playBuy();
             this.saveData();
-            // Animation?
             alert(`升級成功！彈射器等級提升至 Lv.${this.launcherLevel}！`);
         } else {
             alert(`金幣不足！需要 $${cost}。快去破壞更多罐頭吧！`);
         }
-        this.updateUI(); // Refresh buttons
+        this.updateUI(); 
     }
 
     getLaunchPower() {
-        // Base 0.15 + upgrade
         return CONFIG.basePower * (1 + (this.launcherLevel - 1) * 0.1);
+    }
+
+    // --- Cat Growth Logic ---
+    getCatScale() {
+        // Cat grows 10% per level passed
+        return 1.0 + (this.levelIdx * 0.1);
     }
 
     resize() {
@@ -788,7 +768,6 @@ class Game {
     initMode(modeName) {
         this.audio.init();
         
-        // Capture name before starting
         const nameInput = document.getElementById('playerNameInput');
         if(nameInput && nameInput.value.trim() !== "") {
             this.playerName = nameInput.value.trim();
@@ -820,7 +799,7 @@ class Game {
 
     startLevel(idx) {
         this.levelIdx = idx;
-        const levelData = LEVELS[idx];
+        const levelData = generateLevelData(idx); // Use dynamic generator
         this.obstacles = [];
         this.flowers = [];
         this.particles = [];
@@ -887,8 +866,13 @@ class Game {
             if (this.selectedCatType) {
                 this.catsPool.splice(this.selectedCatIdx, 1);
                 
+                // Apply Growth
+                const scale = this.getCatScale();
+                
                 this.cat = {
                     ...this.selectedCatType,
+                    radius: this.selectedCatType.radius * scale, // Bigger!
+                    mass: this.selectedCatType.mass * scale, // Heavier!
                     x: this.slingX,
                     y: this.slingY,
                     vx: 0, vy: 0,
@@ -969,7 +953,7 @@ class Game {
         const dx = this.slingX - this.dragCurrent.x;
         const dy = this.slingY - this.dragCurrent.y;
         
-        const power = this.getLaunchPower(); // Apply Upgrade
+        const power = this.getLaunchPower(); 
         this.cat.vx = dx * power;
         this.cat.vy = dy * power;
         
@@ -1030,7 +1014,6 @@ class Game {
                 return;
             }
 
-            // Fun: Add rainbow trail while flying fast
             if (this.gameFrame % 4 === 0 && Math.abs(this.cat.vx) > 3) {
                 const colors = ['red', 'orange', 'yellow', 'green', 'blue', 'indigo', 'violet'];
                 const p = new Particle(this.cat.x, this.cat.y, colors[Math.floor(Math.random()*colors.length)], 2);
@@ -1098,12 +1081,10 @@ class Game {
                 for (let j = 0; j < this.obstacles.length; j++) {
                     if (i === j) continue;
                     const other = this.obstacles[j];
-                    // Narrow support check for horizontal alignment
                     if (Math.abs((ob.x + ob.w/2) - (other.x + other.w/2)) < (ob.w/2 + other.w/2) * 0.7) {
-                         // Improved Vertical Stacking: Allow small overlap (20px) to count as support
                          if (ob.y + ob.h >= other.y && ob.y + ob.h <= other.y + 20) {
                              supported = true;
-                             ob.y = other.y - ob.h; // Snap to top
+                             ob.y = other.y - ob.h; 
                              ob.vy = 0;
                              break;
                          }
@@ -1119,7 +1100,6 @@ class Game {
             }
             
             if(ob.update(CONFIG.gravity, groundY)) {
-                // Award Money on Destroy
                 this.addMoney(ob.getBounty(), ob.x + ob.w/2, ob.y);
                 
                 if (ob.type === 9 || ob.type === 10) {
@@ -1127,7 +1107,7 @@ class Game {
                      this.addEffect(ob.x, ob.y, 'stars');
                 } else {
                     this.audio.playBreak();
-                    this.audio.playCoin(); // Coin sound
+                    this.audio.playCoin(); 
                 }
                 this.obstacles.splice(i, 1);
                 continue;
@@ -1244,52 +1224,67 @@ class Game {
         this.state = 'LEVEL_END';
         this.audio.playWin();
         
-        // Bonus Money for level clear
         this.addMoney(1000); 
-        this.saveRecord(); // Save to leaderboard
+        this.saveRecord(); 
 
         setTimeout(() => {
             document.getElementById('resultScreen').classList.remove('hidden');
             document.getElementById('hud').classList.add('hidden');
             document.getElementById('resultTitle').innerText = "女王獲救了!";
-            document.getElementById('resultMsg').innerText = `過關獎勵 +$1000`;
+            document.getElementById('resultMsg').innerText = `過關獎勵 +$1000 (貓咪變大了!)`;
             document.getElementById('resultScore').innerText = `總分: ${this.score}`;
             
-            this.updateUI(); // Show updated money in result
-
-            const nextBtn = document.getElementById('nextLevelBtn');
-            if (this.levelIdx < LEVELS.length - 1) {
-                nextBtn.style.display = 'inline-block';
-                nextBtn.onclick = () => {
-                    document.getElementById('resultScreen').classList.add('hidden');
-                    document.getElementById('hud').classList.remove('hidden');
-                    this.startLevel(this.levelIdx + 1);
-                };
-            } else {
-                nextBtn.style.display = 'none';
-                document.getElementById('resultMsg').innerText = "恭喜通關！你是貓咪英雄！";
-            }
+            // Show correct buttons
+            document.getElementById('nextLevelBtn').classList.remove('hidden');
+            document.getElementById('retryLevelBtn').classList.add('hidden');
+            
+            this.updateUI(); 
         }, 1500);
     }
 
     failLevel() {
-        this.saveRecord(); // Save to leaderboard
+        this.saveRecord(); 
         document.getElementById('resultScreen').classList.remove('hidden');
         document.getElementById('hud').classList.add('hidden');
         document.getElementById('resultTitle').innerText = "救援失敗...";
         document.getElementById('resultMsg').innerText = `還有 ${this.cansLeft} 個罐頭沒打倒`;
         document.getElementById('resultScore').innerText = `得分: ${this.score}`;
-        document.getElementById('nextLevelControls').innerHTML = `<button onclick="game.startLevel(${this.levelIdx}); document.getElementById('resultScreen').classList.add('hidden'); document.getElementById('hud').classList.remove('hidden');">重試本關</button>`;
+        
+        // Show correct buttons
+        document.getElementById('nextLevelBtn').classList.add('hidden');
+        document.getElementById('retryLevelBtn').classList.remove('hidden');
+        
         this.updateUI();
+    }
+    
+    // --- New Navigation Methods ---
+    nextLevel() {
+        document.getElementById('resultScreen').classList.add('hidden');
+        document.getElementById('hud').classList.remove('hidden');
+        this.startLevel(this.levelIdx + 1);
+    }
+    
+    retryLevel() {
+        document.getElementById('resultScreen').classList.add('hidden');
+        document.getElementById('hud').classList.remove('hidden');
+        this.startLevel(this.levelIdx);
     }
 
     endGameDistance() {
-        this.saveRecord(); // Save to leaderboard
+        this.saveRecord(); 
         document.getElementById('resultScreen').classList.remove('hidden');
         document.getElementById('hud').classList.add('hidden');
         document.getElementById('resultTitle').innerText = "花園之旅結束";
         document.getElementById('resultScore').innerText = `得分: ${this.score}`;
-        document.getElementById('nextLevelControls').innerHTML = `<button onclick="game.initMode('DISTANCE'); document.getElementById('resultScreen').classList.add('hidden');">再玩一次</button>`;
+        
+        document.getElementById('nextLevelBtn').classList.add('hidden');
+        document.getElementById('retryLevelBtn').classList.remove('hidden');
+        document.getElementById('retryLevelBtn').innerText = "再玩一次"; // Rename specifically for distance mode
+        document.getElementById('retryLevelBtn').onclick = () => {
+             document.getElementById('resultScreen').classList.add('hidden');
+             this.initMode('DISTANCE');
+        };
+        
         this.updateUI();
     }
 
@@ -1313,7 +1308,6 @@ class Game {
     }
 
     updateUI() {
-        // Update Money Displays
         const moneyEl = document.getElementById('moneyDisplay');
         if (moneyEl) moneyEl.innerText = this.money;
         
@@ -1323,19 +1317,14 @@ class Game {
         const resultMoneyEl = document.getElementById('resultMoneyDisplay');
         if (resultMoneyEl) resultMoneyEl.innerText = this.money;
         
-        // Update Launcher Info
         const launcherLvEl = document.getElementById('startLauncherLv');
         if (launcherLvEl) launcherLvEl.innerText = this.launcherLevel;
         
-        // Update High Score Display
         const highScoreEl = document.getElementById('highScoreDisplay');
-        // Find best score for current player from leaderboard, or overall? User requested separate records.
-        // Let's just show the #1 score overall for now
         let topScore = 0;
         if(this.leaderboard.length > 0) topScore = this.leaderboard[0].score;
         if (highScoreEl) highScoreEl.innerText = topScore;
 
-        // Update Buttons
         const cost = this.getUpgradeCost();
         const text = `⬆️ 升級 (Lv.${this.launcherLevel+1}) - $${cost}`;
         
@@ -1351,7 +1340,6 @@ class Game {
             resultUpgradeBtn.disabled = this.money < cost;
         }
 
-        // HUD Info
         const scoreEl = document.getElementById('scoreDisplay');
         if (scoreEl) scoreEl.innerText = this.score;
         
@@ -1365,10 +1353,9 @@ class Game {
     }
 
     updateHUD() {
-        this.updateUI(); // Keep synced
+        this.updateUI(); 
     }
 
-    // --- 5. RENDER ---
     draw() {
         const ctx = this.ctx;
         ctx.clearRect(0, 0, CONFIG.width, CONFIG.height);
@@ -1379,38 +1366,34 @@ class Game {
         ctx.fillStyle = '#87CEEB';
         ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
         
-        // Clouds parallax
         this.drawClouds(ctx);
         
-        // Camera Transform
         ctx.translate(-this.cameraX, 0);
         
-        // Ground
         const groundY = CONFIG.height - 100;
         ctx.fillStyle = '#8BC34A';
         ctx.fillRect(this.cameraX, groundY, CONFIG.width, 100);
         ctx.fillStyle = '#689F38';
         ctx.fillRect(this.cameraX, groundY, CONFIG.width, 10);
         
-        // Flowers
         this.drawFlowers(ctx);
-        
-        // Slingshot (Back)
         this.drawSlingshot(ctx, false);
         
-        // Obstacles
         this.obstacles.forEach(ob => this.drawObstacle(ctx, ob));
         
-        // Cat
         if (this.cat) this.drawCat(ctx, this.cat);
         else if (this.state === 'AIM') {
-             // Preview Cat
              let x = this.dragCurrent ? this.dragCurrent.x : this.slingX;
              let y = this.dragCurrent ? this.dragCurrent.y : this.slingY;
-             const previewCat = {...this.selectedCatType, x:x, y:y, rotation:0};
+             // Scale Preview
+             const scale = this.getCatScale();
+             const previewCat = {
+                 ...this.selectedCatType, 
+                 x:x, y:y, rotation:0,
+                 radius: this.selectedCatType.radius * scale 
+             };
              this.drawCat(ctx, previewCat);
              
-             // Aim Line
              if(this.dragCurrent) {
                 ctx.beginPath();
                 ctx.strokeStyle = "rgba(255,255,255,0.6)";
@@ -1423,10 +1406,7 @@ class Game {
              }
         }
         
-        // Slingshot (Front)
         this.drawSlingshot(ctx, true);
-        
-        // Particles
         this.particles.forEach(p => p.draw(ctx));
 
         ctx.restore();
@@ -1452,7 +1432,6 @@ class Game {
             ctx.translate(f.x, f.y);
             ctx.scale(f.scale, f.scale);
             ctx.fillStyle = f.color;
-            // Draw Paw Flower
             ctx.beginPath(); ctx.arc(0, -10, 8, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(-10, -15, 5, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(0, -22, 5, 0, Math.PI*2); ctx.fill();
@@ -1471,17 +1450,14 @@ class Game {
         if (!front) {
             ctx.beginPath(); ctx.moveTo(x, y+50); ctx.lineTo(x, y); ctx.lineTo(x-20, y-30); ctx.stroke();
         } else {
-            // Elastic
             if (this.state === 'AIM' && this.dragCurrent) {
-                // Change elastic color based on level
                 const level = this.launcherLevel;
                 ctx.strokeStyle = level > 5 ? '#FFD700' : (level > 2 ? '#E65100' : '#3E2723');
-                ctx.lineWidth = 4 + Math.min(6, level); // Thicker elastic
+                ctx.lineWidth = 4 + Math.min(6, level); 
                 
                 ctx.beginPath(); ctx.moveTo(x-20, y-30); ctx.lineTo(this.dragCurrent.x, this.dragCurrent.y); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(x+20, y-30); ctx.lineTo(this.dragCurrent.x, this.dragCurrent.y); ctx.stroke();
                 
-                // Reset for wood
                 ctx.strokeStyle = '#5D4037'; ctx.lineWidth = 6;
             }
             ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x+20, y-30); ctx.stroke();
@@ -1559,11 +1535,10 @@ class Game {
         ctx.rotate(cat.rotation);
         
         // Fun Animation: Tail
-        // Simple tail wiggle based on frame
         const tailAngle = Math.sin(this.gameFrame * 0.5) * 0.5;
         ctx.save();
         ctx.strokeStyle = cat.color;
-        ctx.lineWidth = 4;
+        ctx.lineWidth = r/4; // Tail thickness scales with cat
         ctx.lineCap = 'round';
         ctx.beginPath();
         ctx.moveTo(-r + 5, 0);
@@ -1582,23 +1557,17 @@ class Game {
             ctx.beginPath(); ctx.moveTo(-r, -r/3); ctx.lineTo(r, -r/3); ctx.stroke();
         }
 
-        // Fun Animation: Expression
-        // If flying fast, eyes are wide open O_O
-        // Else, normal eyes
         const speed = Math.hypot(cat.vx || 0, cat.vy || 0);
         const isFlyingFast = speed > 5;
 
-        // Eyes
         ctx.fillStyle = '#FFF';
         if (isFlyingFast) {
-            // Wide open eyes
             ctx.beginPath(); ctx.arc(-r/3, -r/5, r/4, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(r/3, -r/5, r/4, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = '#000';
             ctx.beginPath(); ctx.arc(-r/3, -r/5, r/10, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(r/3, -r/5, r/10, 0, Math.PI*2); ctx.fill();
         } else {
-            // Normal / Happy eyes
             ctx.beginPath(); ctx.arc(-r/3, -r/5, r/5, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(r/3, -r/5, r/5, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = '#000';
