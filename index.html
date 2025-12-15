@@ -126,11 +126,12 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.3);
             border: 4px solid var(--primary-color);
             max-width: 95%;
-            width: 550px; /* Widened for better upgrade layout */
+            width: 550px;
             animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             position: relative;
             max-height: 90vh;
             overflow-y: auto;
+            pointer-events: auto; /* Ensure panel captures clicks */
         }
 
         h1 { margin: 0 0 5px 0; color: #e65100; font-size: 1.6em; }
@@ -149,6 +150,7 @@
             box-shadow: 0 4px 0 #d32f2f;
             transition: transform 0.1s;
             min-width: 120px;
+            pointer-events: auto; /* Force clickable */
         }
 
         button:active { transform: translateY(4px); box-shadow: 0 1px 0 #d32f2f; }
@@ -197,6 +199,7 @@
             gap: 10px;
             padding: 5px;
             scrollbar-width: thin;
+            -webkit-overflow-scrolling: touch; /* Smooth scroll on mobile */
         }
         .cat-upgrade-item {
             flex: 0 0 100px;
@@ -210,6 +213,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: space-between;
+            pointer-events: auto; /* Ensure items capture clicks */
         }
         .cat-upgrade-item.affordable { border-color: #4caf50; }
         .cat-icon { font-size: 24px; margin-bottom: 2px; }
@@ -225,6 +229,7 @@
             width: 100%;
             margin-top: 5px;
             box-shadow: 0 2px 0 #e65100;
+            pointer-events: auto; /* Crucial fix for clicks */
         }
         .upgrade-mini-btn:active { transform: translateY(2px); box-shadow: 0 0 0; }
         .upgrade-mini-btn:disabled { background: #eee; color: #aaa; box-shadow: none; }
@@ -702,9 +707,12 @@ class Game {
             this.money = data.money || 0;
             this.launcherLevel = data.launcherLevel || 1;
             this.leaderboard = data.leaderboard || [];
-            if (data.catLevels) {
-                this.catLevels = { ...this.catLevels, ...data.catLevels };
-            }
+            
+            // Ensure catLevels is robust (merge default with saved)
+            const defaultLevels = {};
+            CAT_TYPES.forEach(c => defaultLevels[c.id] = 1);
+            this.catLevels = { ...defaultLevels, ...(data.catLevels || {}) };
+
             if(data.lastPlayerName) document.getElementById('playerNameInput').value = data.lastPlayerName;
         }
     }
@@ -797,7 +805,7 @@ class Game {
 
     getCatUpgradeCost(catId) {
         const cat = CAT_TYPES.find(c => c.id === catId);
-        const level = this.catLevels[catId];
+        const level = this.catLevels[catId] || 1; // Fallback to 1
         return cat.upgradeCostBase * level;
     }
 
@@ -819,7 +827,7 @@ class Game {
         const cost = this.getCatUpgradeCost(catId);
         if (this.money >= cost) {
             this.money -= cost;
-            this.catLevels[catId]++;
+            this.catLevels[catId] = (this.catLevels[catId] || 1) + 1;
             this.audio.playBuy();
             this.saveData();
         } else {
@@ -833,6 +841,7 @@ class Game {
     }
 
     getCatScale() {
+        // Cat grows 10% per level passed
         return 1.0 + (this.levelIdx * 0.1);
     }
 
@@ -933,7 +942,7 @@ class Game {
             const el = document.createElement('div');
             el.className = 'cat-card';
             el.style.borderColor = cat.color;
-            const lv = this.catLevels[cat.id];
+            const lv = this.catLevels[cat.id] || 1;
             el.innerHTML = `
                 <div style="font-size:24px;">🐱</div>
                 <div style="font-size:10px;">${cat.name}</div>
@@ -1116,8 +1125,8 @@ class Game {
             }
 
             if (this.gameFrame % 4 === 0 && Math.abs(this.cat.vx) > 3) {
-                // Visual effect for high speed
-                const p = new Particle(this.cat.x, this.cat.y, 'rgba(255,255,255,0.5)', 2);
+                const colors = ['red', 'orange', 'yellow', 'green', 'blue', 'indigo', 'violet'];
+                const p = new Particle(this.cat.x, this.cat.y, colors[Math.floor(Math.random()*colors.length)], 2);
                 this.particles.push(p);
             }
 
@@ -1486,7 +1495,7 @@ class Game {
         if (!container) return;
         container.innerHTML = '';
         CAT_TYPES.forEach(cat => {
-            const lv = this.catLevels[cat.id];
+            const lv = this.catLevels[cat.id] || 1;
             const upgradeCost = this.getCatUpgradeCost(cat.id);
             const affordable = this.money >= upgradeCost;
             
@@ -1622,69 +1631,6 @@ class Game {
         ctx.save();
         ctx.translate(ob.x + ob.w/2, ob.y + ob.h/2);
         ctx.rotate(ob.rotation);
-        
-        if (ob.hp < ob.maxHp) {
-            ctx.rotate((Math.random()-0.5) * 0.05);
-        }
-
-        if (ob.type === 99) { // Cage
-            ctx.strokeStyle = '#FFD700';
-            ctx.lineWidth = 4;
-            ctx.strokeRect(-ob.w/2, -ob.h/2, ob.w, ob.h);
-            ctx.beginPath();
-            ctx.moveTo(-10, -ob.h/2); ctx.lineTo(-10, ob.h/2);
-            ctx.moveTo(10, -ob.h/2); ctx.lineTo(10, ob.h/2);
-            ctx.stroke();
-            if (this.state !== 'LEVEL_END') {
-                 ctx.fillStyle = 'red';
-                 ctx.font = '20px Arial';
-                 ctx.fillText('👑', -10, 5);
-            }
-        } 
-        else if (ob.type === 9 || ob.type === 10) { // Can
-            ctx.fillStyle = ob.getColor();
-            ctx.beginPath();
-            ctx.roundRect(-ob.w/2, -ob.h/2, ob.w, ob.h, 5);
-            ctx.fill();
-            ctx.strokeStyle = '#FBC02D';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            
-            ctx.fillStyle = '#F57F17';
-            ctx.font = (ob.type===10 ? '30px' : '20px') + ' Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            const face = ob.hp < ob.maxHp/2 ? '🙀' : '😼';
-            ctx.fillText(face, 0, 0);
-            
-            ctx.fillStyle = ob.getColor();
-            ctx.beginPath(); 
-            ctx.moveTo(-ob.w/2, -ob.h/2); ctx.lineTo(-ob.w/2 + 5, -ob.h/2-10); ctx.lineTo(-ob.w/2 + 15, -ob.h/2); ctx.fill();
-            ctx.beginPath(); 
-            ctx.moveTo(ob.w/2, -ob.h/2); ctx.lineTo(ob.w/2 - 5, -ob.h/2-10); ctx.lineTo(ob.w/2 - 15, -ob.h/2); ctx.fill();
-
-        } else { // Blocks
-            ctx.fillStyle = ob.getColor();
-            ctx.fillRect(-ob.w/2, -ob.h/2, ob.w, ob.h);
-            ctx.strokeStyle = "rgba(0,0,0,0.2)";
-            ctx.lineWidth = 2;
-            ctx.strokeRect(-ob.w/2, -ob.h/2, ob.w, ob.h);
-            
-            if (ob.hp < ob.maxHp * 0.7) {
-                ctx.beginPath(); ctx.moveTo(-10, -10); ctx.lineTo(10, 10); ctx.stroke();
-            }
-        }
-        ctx.restore();
-    }
-
-    drawCat(ctx, cat) {
-        const x = cat.x;
-        const y = cat.y;
-        const r = cat.radius || 15;
-        
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(cat.rotation);
         
         // Fun Animation: Tail
         const tailAngle = Math.sin(this.gameFrame * 0.5) * 0.5;
