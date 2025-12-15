@@ -9,7 +9,7 @@
             --primary-color: #ff9a9e;
             --secondary-color: #fad0c4;
             --text-color: #5d4037;
-            --ui-bg: rgba(255, 255, 255, 0.95);
+            --ui-bg: rgba(255, 255, 255, 0.98);
             --gold-color: #FFD700;
         }
 
@@ -120,15 +120,17 @@
         /* Panels */
         .panel {
             background: var(--ui-bg);
-            padding: 30px;
+            padding: 25px;
             border-radius: 20px;
             text-align: center;
             box-shadow: 0 10px 25px rgba(0,0,0,0.3);
             border: 4px solid var(--primary-color);
             max-width: 90%;
-            width: 450px;
+            width: 480px;
             animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         h1 { margin: 0 0 10px 0; color: #e65100; font-size: 1.8em; }
@@ -143,7 +145,7 @@
             font-size: 1.1em;
             border-radius: 50px;
             cursor: pointer;
-            margin: 10px 5px;
+            margin: 8px 5px;
             box-shadow: 0 4px 0 #d32f2f;
             transition: transform 0.1s;
             min-width: 140px;
@@ -164,13 +166,35 @@
         }
         button.secondary:active { box-shadow: 0 1px 0 #0288d1; }
 
+        /* Input Field */
+        input[type="text"] {
+            padding: 10px;
+            font-size: 1.1em;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            width: 60%;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        /* Leaderboard Table */
+        .rank-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+        .rank-table th { background: #ffccbc; padding: 8px; color: #d84315; }
+        .rank-table td { border-bottom: 1px solid #eee; padding: 6px; color: #555; }
+        .rank-table tr:nth-child(even) { background: #fffbe6; }
+
         /* Upgrade Button Style */
         .upgrade-box {
             background: #fff3e0;
             border: 2px dashed #ff9800;
             padding: 10px;
             border-radius: 15px;
-            margin: 15px 0;
+            margin: 10px 0;
         }
         .upgrade-btn {
             background: linear-gradient(to bottom, #ffd700 0%, #ff8c00 100%);
@@ -221,7 +245,6 @@
                 <button class="menu-btn" onclick="location.reload()">🏠 選單</button>
                 <span>💰 <span id="moneyDisplay" class="money-text">0</span></span>
             </div>
-            <div class="hud-box">🏆 最高: <span id="highScoreDisplay">0</span></div>
             <div class="hud-box" id="levelDisplayBox">關卡: <span id="levelDisplay">1</span></div>
         </div>
         <div style="display:flex; flex-direction:column; align-items:flex-end;">
@@ -239,8 +262,14 @@
         <div class="panel">
             <h1>👑 Queen Meow 的救援作戰</h1>
             <p>累積金幣，升級裝備，推倒更巨大的罐頭塔！</p>
-            <div style="font-size:0.9em; color:#e65100; margin-bottom: 10px;">🏆 個人最高紀錄: <span id="startHighScore">0</span></div>
             
+            <div style="margin: 10px 0;">
+                <label>勇者姓名：</label><br>
+                <input type="text" id="playerNameInput" placeholder="請輸入名字 (預設: 無名貓)" maxlength="8">
+            </div>
+
+            <button class="secondary" onclick="game.showLeaderboard()">🏆 查看排行榜</button>
+
             <div class="upgrade-box">
                 <div style="font-size:0.9em; margin-bottom:5px;">彈射器等級: <span id="startLauncherLv">1</span></div>
                 <button id="startUpgradeBtn" class="upgrade-btn" onclick="game.buyUpgrade()">
@@ -254,13 +283,36 @@
         </div>
     </div>
 
+    <!-- Leaderboard Screen -->
+    <div id="leaderboardScreen" class="ui-layer interactive hidden">
+        <div class="panel">
+            <h2>🏆 英雄排行榜</h2>
+            <div style="max-height: 300px; overflow-y: auto;">
+                <table class="rank-table">
+                    <thead>
+                        <tr>
+                            <th>名次</th>
+                            <th>姓名</th>
+                            <th>分數</th>
+                            <th>日期</th>
+                            <th>時間</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboardBody">
+                        <!-- JS 填入 -->
+                    </tbody>
+                </table>
+            </div>
+            <button class="secondary" onclick="document.getElementById('leaderboardScreen').classList.add('hidden'); document.getElementById('startScreen').classList.remove('hidden');">返回</button>
+        </div>
+    </div>
+
     <!-- Level Cleared / Failed -->
     <div id="resultScreen" class="ui-layer interactive hidden">
         <div class="panel">
             <h1 id="resultTitle">關卡完成!</h1>
             <p id="resultMsg">女王獲救了!</p>
             <h2 id="resultScore">0</h2>
-            <p id="newRecordMsg" style="color:red; font-weight:bold; display:none;">✨ 新紀錄! ✨</p>
             
             <div class="upgrade-box">
                 <div style="font-size:0.9em;">強化你的貓咪彈射器！</div>
@@ -290,7 +342,7 @@
 <script>
 /**
  * Cat Can Rescue: Queen Meow's Rescue Operation
- * Features: Physics, Entity System, Money/Upgrade System, LocalStorage Persistence, High Scores
+ * Features: Physics, Entity System, Money/Upgrade System, LocalStorage Persistence, Detailed Leaderboard
  */
 
 // --- 1. CONFIG & DATA ---
@@ -301,20 +353,20 @@ const CONFIG = {
     stopVelocity: 0.15,
     meterScale: 0.1,
     debug: false,
-    basePower: 0.15, // Base launch power
+    basePower: 0.15, 
     width: 0, 
     height: 0
 };
 
-// 貓咪資料 (包含技能)
+// 貓咪資料 (半徑已加倍)
 const CAT_TYPES = [
-    { id: 'orange', name: '小橘', color: '#FFB347', mass: 1.0, radius: 15, skill: 'DASH', desc: '技能: 二段加速衝刺' },
-    { id: 'black', name: '黑貓', color: '#333333', mass: 1.0, radius: 14, skill: 'CLONE', desc: '技能: 影分身攻擊' },
-    { id: 'cow', name: '乳牛', color: '#EEEEEE', pattern: 'cow', mass: 1.3, radius: 16, skill: 'QUAKE', desc: '技能: 落地大地震' },
-    { id: 'calico', name: '三花', color: '#FFFFFF', pattern: 'calico', mass: 1.0, radius: 15, skill: 'FLOWER_BOMB', desc: '技能: 空中灑花爆擊' },
-    { id: 'tabby', name: '虎斑', color: '#A0A0A0', pattern: 'stripe', mass: 1.4, radius: 16, skill: 'DRILL', desc: '技能: 鑽頭滾動 (低摩擦)' },
-    { id: 'white', name: '白貓', color: '#F0F8FF', mass: 0.8, radius: 13, skill: 'STEER', desc: '技能: 柔風轉向 (滑鼠/按鍵控制)' },
-    { id: 'chubby', name: '胖胖', color: '#FFD1DC', mass: 2.0, radius: 22, skill: 'GIANT', desc: '技能: 巨大化撞擊' }
+    { id: 'orange', name: '小橘', color: '#FFB347', mass: 1.0, radius: 30, skill: 'DASH', desc: '技能: 二段加速衝刺' }, // 15 -> 30
+    { id: 'black', name: '黑貓', color: '#333333', mass: 1.0, radius: 28, skill: 'CLONE', desc: '技能: 影分身攻擊' }, // 14 -> 28
+    { id: 'cow', name: '乳牛', color: '#EEEEEE', pattern: 'cow', mass: 1.3, radius: 32, skill: 'QUAKE', desc: '技能: 落地大地震' }, // 16 -> 32
+    { id: 'calico', name: '三花', color: '#FFFFFF', pattern: 'calico', mass: 1.0, radius: 30, skill: 'FLOWER_BOMB', desc: '技能: 空中灑花爆擊' }, // 15 -> 30
+    { id: 'tabby', name: '虎斑', color: '#A0A0A0', pattern: 'stripe', mass: 1.4, radius: 32, skill: 'DRILL', desc: '技能: 鑽頭滾動 (低摩擦)' }, // 16 -> 32
+    { id: 'white', name: '白貓', color: '#F0F8FF', mass: 0.8, radius: 26, skill: 'STEER', desc: '技能: 柔風轉向 (滑鼠/按鍵控制)' }, // 13 -> 26
+    { id: 'chubby', name: '胖胖', color: '#FFD1DC', mass: 2.0, radius: 44, skill: 'GIANT', desc: '技能: 巨大化撞擊' }  // 22 -> 44
 ];
 
 // Helper variables for Can Sizes
@@ -322,7 +374,7 @@ const CAN_W = 70;
 const CAN_H = 70; 
 const BASE_H = 40; 
 
-// 關卡資料 (Added vertical spacing buffers to prevent initial intersection)
+// 關卡資料 
 const LEVELS = [
     // Level 1: Basic Stacks (3 layers of BIG cans)
     {
@@ -592,7 +644,8 @@ class Game {
         // Economy & Upgrade System
         this.money = 0;
         this.launcherLevel = 1;
-        this.highScore = 0; // Added High Score
+        this.playerName = "無名貓";
+        this.leaderboard = []; // Array of {name, score, date, time}
         this.loadSave();
         
         this.resize();
@@ -605,36 +658,81 @@ class Game {
     }
 
     loadSave() {
-        const saved = localStorage.getItem('catRescueData');
+        const saved = localStorage.getItem('catRescueData_v2');
         if (saved) {
             const data = JSON.parse(saved);
             this.money = data.money || 0;
             this.launcherLevel = data.launcherLevel || 1;
-            this.highScore = data.highScore || 0; // Load high score
+            this.leaderboard = data.leaderboard || [];
+            if(data.lastPlayerName) document.getElementById('playerNameInput').value = data.lastPlayerName;
         }
     }
 
     saveData() {
+        // Get name from input if available
+        const nameInput = document.getElementById('playerNameInput');
+        if (nameInput && nameInput.value) {
+            this.playerName = nameInput.value;
+        }
+
         const data = {
             money: this.money,
             launcherLevel: this.launcherLevel,
-            highScore: this.highScore // Save high score
+            leaderboard: this.leaderboard,
+            lastPlayerName: this.playerName
         };
-        localStorage.setItem('catRescueData', JSON.stringify(data));
+        localStorage.setItem('catRescueData_v2', JSON.stringify(data));
         this.updateUI();
     }
 
-    checkHighScore() {
-        if (this.score > this.highScore) {
-            this.highScore = this.score;
-            this.saveData();
-            
-            // Show new record message
-            const msg = document.getElementById('newRecordMsg');
-            if(msg) msg.style.display = 'block';
-            return true;
+    // Save current score to leaderboard
+    saveRecord() {
+        if (this.score <= 0) return;
+
+        const nameInput = document.getElementById('playerNameInput');
+        const name = (nameInput && nameInput.value) ? nameInput.value : "無名貓";
+        const now = new Date();
+        const dateStr = now.toLocaleDateString();
+        const timeStr = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+        const record = {
+            name: name,
+            score: this.score,
+            date: dateStr,
+            time: timeStr
+        };
+
+        this.leaderboard.push(record);
+        // Sort descending by score
+        this.leaderboard.sort((a, b) => b.score - a.score);
+        // Keep top 20
+        if (this.leaderboard.length > 20) this.leaderboard.pop();
+        
+        this.saveData();
+    }
+
+    showLeaderboard() {
+        document.getElementById('startScreen').classList.add('hidden');
+        document.getElementById('leaderboardScreen').classList.remove('hidden');
+        
+        const tbody = document.getElementById('leaderboardBody');
+        tbody.innerHTML = '';
+        
+        this.leaderboard.forEach((rec, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${rec.name}</td>
+                <td style="color: #d84315; font-weight: bold;">${rec.score}</td>
+                <td>${rec.date}</td>
+                <td>${rec.time}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        if (this.leaderboard.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5">尚無紀錄，快去挑戰吧！</td></tr>';
         }
-        return false;
     }
 
     addMoney(amount, x, y) {
@@ -686,15 +784,21 @@ class Game {
 
     initMode(modeName) {
         this.audio.init();
+        
+        // Capture name before starting
+        const nameInput = document.getElementById('playerNameInput');
+        if(nameInput && nameInput.value.trim() !== "") {
+            this.playerName = nameInput.value.trim();
+        } else {
+            this.playerName = "無名貓";
+        }
+
         this.mode = modeName;
         this.levelIdx = 0;
         this.score = 0;
         
-        // Hide new record msg
-        const msg = document.getElementById('newRecordMsg');
-        if(msg) msg.style.display = 'none';
-
         document.getElementById('startScreen').classList.add('hidden');
+        document.getElementById('leaderboardScreen').classList.add('hidden');
         document.getElementById('hud').classList.remove('hidden');
         
         if (modeName === 'RESCUE') {
@@ -1131,7 +1235,7 @@ class Game {
         
         // Bonus Money for level clear
         this.addMoney(1000); 
-        this.checkHighScore(); // Check high score
+        this.saveRecord(); // Save to leaderboard
 
         setTimeout(() => {
             document.getElementById('resultScreen').classList.remove('hidden');
@@ -1158,7 +1262,7 @@ class Game {
     }
 
     failLevel() {
-        this.checkHighScore(); // Check high score
+        this.saveRecord(); // Save to leaderboard
         document.getElementById('resultScreen').classList.remove('hidden');
         document.getElementById('hud').classList.add('hidden');
         document.getElementById('resultTitle').innerText = "救援失敗...";
@@ -1169,7 +1273,7 @@ class Game {
     }
 
     endGameDistance() {
-        this.checkHighScore(); // Check high score
+        this.saveRecord(); // Save to leaderboard
         document.getElementById('resultScreen').classList.remove('hidden');
         document.getElementById('hud').classList.add('hidden');
         document.getElementById('resultTitle').innerText = "花園之旅結束";
@@ -1211,13 +1315,6 @@ class Game {
         // Update Launcher Info
         const launcherLvEl = document.getElementById('startLauncherLv');
         if (launcherLvEl) launcherLvEl.innerText = this.launcherLevel;
-        
-        // Update High Score Display
-        const highScoreEl = document.getElementById('highScoreDisplay');
-        if (highScoreEl) highScoreEl.innerText = this.highScore;
-
-        const startHighScoreEl = document.getElementById('startHighScore');
-        if (startHighScoreEl) startHighScoreEl.innerText = this.highScore;
         
         // Update Buttons
         const cost = this.getUpgradeCost();
