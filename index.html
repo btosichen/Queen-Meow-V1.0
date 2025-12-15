@@ -131,7 +131,7 @@
             position: relative;
             max-height: 90vh;
             overflow-y: auto;
-            pointer-events: auto; 
+            pointer-events: auto; /* Ensure panel captures clicks */
         }
 
         h1 { margin: 0 0 5px 0; color: #e65100; font-size: 1.6em; }
@@ -150,7 +150,7 @@
             box-shadow: 0 4px 0 #d32f2f;
             transition: transform 0.1s;
             min-width: 120px;
-            pointer-events: auto;
+            pointer-events: auto; /* Force clickable */
         }
 
         button:active { transform: translateY(4px); box-shadow: 0 1px 0 #d32f2f; }
@@ -199,7 +199,7 @@
             gap: 10px;
             padding: 5px;
             scrollbar-width: thin;
-            -webkit-overflow-scrolling: touch;
+            -webkit-overflow-scrolling: touch; /* Smooth scroll on mobile */
         }
         .cat-upgrade-item {
             flex: 0 0 100px;
@@ -213,7 +213,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: space-between;
-            pointer-events: auto;
+            pointer-events: auto; /* Ensure items capture clicks */
         }
         .cat-upgrade-item.affordable { border-color: #4caf50; }
         .cat-icon { font-size: 24px; margin-bottom: 2px; }
@@ -229,7 +229,7 @@
             width: 100%;
             margin-top: 5px;
             box-shadow: 0 2px 0 #e65100;
-            pointer-events: auto;
+            pointer-events: auto; /* Crucial fix for clicks */
         }
         .upgrade-mini-btn:active { transform: translateY(2px); box-shadow: 0 0 0; }
         .upgrade-mini-btn:disabled { background: #eee; color: #aaa; box-shadow: none; }
@@ -1322,15 +1322,16 @@ class Game {
         if (this.mode === 'DISTANCE' && this.cat) {
             const dist = Math.floor((this.cat.x - this.slingX) * CONFIG.meterScale);
             if (dist > 0) {
-                this.score += dist; 
-                this.totalDistance += dist; 
+                this.score += dist; // Add to score
+                this.totalDistance += dist; // Track for HUD
                 this.addMoney(Math.floor(dist/10), this.cat.x, this.cat.y - 50);
                 
+                // Landing Mark
                 const p = new Particle(this.cat.x, CONFIG.height-100, '#000', 0);
                 p.isText = true;
                 p.text = `${dist}m`;
-                p.life = 200; 
-                p.vy = -0.5; 
+                p.life = 200; // Stay longer
+                p.vy = -0.5; // Float up slowly
                 this.particles.push(p);
             }
         }
@@ -1635,6 +1636,69 @@ class Game {
         ctx.save();
         ctx.translate(ob.x + ob.w/2, ob.y + ob.h/2);
         ctx.rotate(ob.rotation);
+        
+        if (ob.hp < ob.maxHp) {
+            ctx.rotate((Math.random()-0.5) * 0.05);
+        }
+
+        if (ob.type === 99) { // Cage
+            ctx.strokeStyle = '#FFD700';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(-ob.w/2, -ob.h/2, ob.w, ob.h);
+            ctx.beginPath();
+            ctx.moveTo(-10, -ob.h/2); ctx.lineTo(-10, ob.h/2);
+            ctx.moveTo(10, -ob.h/2); ctx.lineTo(10, ob.h/2);
+            ctx.stroke();
+            if (this.state !== 'LEVEL_END') {
+                 ctx.fillStyle = 'red';
+                 ctx.font = '20px Arial';
+                 ctx.fillText('👑', -10, 5);
+            }
+        } 
+        else if (ob.type === 9 || ob.type === 10) { // Can
+            ctx.fillStyle = ob.getColor();
+            ctx.beginPath();
+            ctx.roundRect(-ob.w/2, -ob.h/2, ob.w, ob.h, 5);
+            ctx.fill();
+            ctx.strokeStyle = '#FBC02D';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            ctx.fillStyle = '#F57F17';
+            ctx.font = (ob.type===10 ? '30px' : '20px') + ' Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const face = ob.hp < ob.maxHp/2 ? '🙀' : '😼';
+            ctx.fillText(face, 0, 0);
+            
+            ctx.fillStyle = ob.getColor();
+            ctx.beginPath(); 
+            ctx.moveTo(-ob.w/2, -ob.h/2); ctx.lineTo(-ob.w/2 + 5, -ob.h/2-10); ctx.lineTo(-ob.w/2 + 15, -ob.h/2); ctx.fill();
+            ctx.beginPath(); 
+            ctx.moveTo(ob.w/2, -ob.h/2); ctx.lineTo(ob.w/2 - 5, -ob.h/2-10); ctx.lineTo(ob.w/2 - 15, -ob.h/2); ctx.fill();
+
+        } else { // Blocks
+            ctx.fillStyle = ob.getColor();
+            ctx.fillRect(-ob.w/2, -ob.h/2, ob.w, ob.h);
+            ctx.strokeStyle = "rgba(0,0,0,0.2)";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(-ob.w/2, -ob.h/2, ob.w, ob.h);
+            
+            if (ob.hp < ob.maxHp * 0.7) {
+                ctx.beginPath(); ctx.moveTo(-10, -10); ctx.lineTo(10, 10); ctx.stroke();
+            }
+        }
+        ctx.restore();
+    }
+
+    drawCat(ctx, cat) {
+        const x = cat.x;
+        const y = cat.y;
+        const r = cat.radius || 15;
+        
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(cat.rotation);
         
         // Fun Animation: Tail
         const tailAngle = Math.sin(this.gameFrame * 0.5) * 0.5;
