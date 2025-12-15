@@ -126,12 +126,12 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.3);
             border: 4px solid var(--primary-color);
             max-width: 95%;
-            width: 550px;
+            width: 550px; 
             animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             position: relative;
             max-height: 90vh;
             overflow-y: auto;
-            pointer-events: auto; /* Ensure panel captures clicks */
+            pointer-events: auto; 
         }
 
         h1 { margin: 0 0 5px 0; color: #e65100; font-size: 1.6em; }
@@ -150,7 +150,7 @@
             box-shadow: 0 4px 0 #d32f2f;
             transition: transform 0.1s;
             min-width: 120px;
-            pointer-events: auto; /* Force clickable */
+            pointer-events: auto;
         }
 
         button:active { transform: translateY(4px); box-shadow: 0 1px 0 #d32f2f; }
@@ -199,7 +199,8 @@
             gap: 10px;
             padding: 5px;
             scrollbar-width: thin;
-            -webkit-overflow-scrolling: touch; /* Smooth scroll on mobile */
+            -webkit-overflow-scrolling: touch;
+            pointer-events: auto; /* Ensure scrolling works */
         }
         .cat-upgrade-item {
             flex: 0 0 100px;
@@ -213,26 +214,32 @@
             flex-direction: column;
             align-items: center;
             justify-content: space-between;
-            pointer-events: auto; /* Ensure items capture clicks */
+            pointer-events: auto; /* Ensure clicks are captured */
+            position: relative; /* Fix z-index stacking */
+            z-index: 5;
         }
         .cat-upgrade-item.affordable { border-color: #4caf50; }
         .cat-icon { font-size: 24px; margin-bottom: 2px; }
         .cat-skill-name { color: #d84315; font-weight: bold; margin-bottom: 2px; font-size: 0.9em; height: 2.2em; overflow: hidden; }
+        
+        /* Updated mini button style for better clickability */
         .upgrade-mini-btn {
             background: #ffcc80;
             color: #333;
             border: none;
             border-radius: 15px;
-            padding: 4px 8px;
-            font-size: 0.85em;
+            padding: 6px 10px;
+            font-size: 0.9em;
             cursor: pointer;
             width: 100%;
             margin-top: 5px;
             box-shadow: 0 2px 0 #e65100;
-            pointer-events: auto; /* Crucial fix for clicks */
+            pointer-events: auto !important; /* Force click events */
+            position: relative;
+            z-index: 10;
         }
         .upgrade-mini-btn:active { transform: translateY(2px); box-shadow: 0 0 0; }
-        .upgrade-mini-btn:disabled { background: #eee; color: #aaa; box-shadow: none; }
+        .upgrade-mini-btn:disabled { background: #eee; color: #aaa; box-shadow: none; cursor: default; }
 
         /* Launcher Upgrade Button */
         .launcher-btn {
@@ -1357,8 +1364,9 @@ class Game {
         this.state = 'LEVEL_END';
         this.audio.playWin();
         
+        // Bonus Money for level clear
         this.addMoney(1000); 
-        this.saveRecord(); 
+        this.saveRecord(); // Save to leaderboard
 
         setTimeout(() => {
             document.getElementById('resultScreen').classList.remove('hidden');
@@ -1506,14 +1514,37 @@ class Game {
             
             const item = document.createElement('div');
             item.className = `cat-upgrade-item ${affordable ? 'affordable' : ''}`;
-            item.innerHTML = `
-                <div class="cat-icon">🐱</div>
-                <div class="cat-skill-name" style="color:${cat.color}">${cat.skillName}</div>
-                <div style="font-size:0.8em; color:#666;">Lv.${lv}</div>
-                <button class="upgrade-mini-btn" ${!affordable ? 'disabled' : ''} onclick="game.buyCatUpgrade('${cat.id}')">
-                    $${upgradeCost}
-                </button>
-            `;
+            
+            // Create inner HTML structure first
+            const icon = document.createElement('div');
+            icon.className = 'cat-icon';
+            icon.innerText = '🐱';
+            
+            const name = document.createElement('div');
+            name.className = 'cat-skill-name';
+            name.style.color = cat.color;
+            name.innerText = cat.skillName;
+            
+            const level = document.createElement('div');
+            level.style.fontSize = '0.8em';
+            level.style.color = '#666';
+            level.innerText = `Lv.${lv}`;
+            
+            const btn = document.createElement('button');
+            btn.className = 'upgrade-mini-btn';
+            btn.disabled = !affordable;
+            btn.innerText = `$${upgradeCost}`;
+            // Direct binding to ensure it works
+            btn.onclick = (e) => {
+                e.stopPropagation(); // Prevent bubbling issues
+                game.buyCatUpgrade(cat.id);
+            };
+
+            item.appendChild(icon);
+            item.appendChild(name);
+            item.appendChild(level);
+            item.appendChild(btn);
+            
             container.appendChild(item);
         });
     }
