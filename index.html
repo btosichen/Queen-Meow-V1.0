@@ -131,7 +131,7 @@
             position: relative;
             max-height: 90vh;
             overflow-y: auto;
-            pointer-events: auto; /* Ensure panel captures clicks */
+            pointer-events: auto; 
         }
 
         h1 { margin: 0 0 5px 0; color: #e65100; font-size: 1.6em; }
@@ -150,7 +150,7 @@
             box-shadow: 0 4px 0 #d32f2f;
             transition: transform 0.1s;
             min-width: 120px;
-            pointer-events: auto; /* Force clickable */
+            pointer-events: auto;
         }
 
         button:active { transform: translateY(4px); box-shadow: 0 1px 0 #d32f2f; }
@@ -199,7 +199,7 @@
             gap: 10px;
             padding: 5px;
             scrollbar-width: thin;
-            -webkit-overflow-scrolling: touch; /* Smooth scroll on mobile */
+            -webkit-overflow-scrolling: touch;
         }
         .cat-upgrade-item {
             flex: 0 0 100px;
@@ -213,7 +213,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: space-between;
-            pointer-events: auto; /* Ensure items capture clicks */
+            pointer-events: auto;
         }
         .cat-upgrade-item.affordable { border-color: #4caf50; }
         .cat-icon { font-size: 24px; margin-bottom: 2px; }
@@ -229,7 +229,7 @@
             width: 100%;
             margin-top: 5px;
             box-shadow: 0 2px 0 #e65100;
-            pointer-events: auto; /* Crucial fix for clicks */
+            pointer-events: auto;
         }
         .upgrade-mini-btn:active { transform: translateY(2px); box-shadow: 0 0 0; }
         .upgrade-mini-btn:disabled { background: #eee; color: #aaa; box-shadow: none; }
@@ -408,7 +408,7 @@
 <script>
 /**
  * Cat Can Rescue: Queen Meow's Rescue Operation
- * Features: Infinite Levels, Cat Growth, Leaderboard, In-Game Upgrades, Distance Mode
+ * Features: Infinite Levels, Cat Growth, Leaderboard, In-Game Upgrades, Distance Mode, Robust UI
  */
 
 // --- 1. CONFIG & DATA ---
@@ -669,6 +669,7 @@ class Game {
         this.flowers = [];
         this.cameraX = 0;
         this.gameFrame = 0;
+        this.cansLeft = 0; // Initialize immediately
         
         this.slingX = 150;
         this.slingY = 0; 
@@ -679,12 +680,11 @@ class Game {
         this.score = 0;
         this.catsUsed = 0;
         this.catsPool = [];
-        this.totalDistance = 0; // For distance mode
+        this.totalDistance = 0; 
         
-        // Economy & Upgrade System
         this.money = 0;
         this.launcherLevel = 1;
-        this.catLevels = {}; // Map of catId -> level
+        this.catLevels = {}; 
         CAT_TYPES.forEach(c => this.catLevels[c.id] = 1);
 
         this.playerName = "無名貓";
@@ -701,19 +701,20 @@ class Game {
     }
 
     loadSave() {
-        const saved = localStorage.getItem('catRescueData_v3');
-        if (saved) {
-            const data = JSON.parse(saved);
-            this.money = data.money || 0;
-            this.launcherLevel = data.launcherLevel || 1;
-            this.leaderboard = data.leaderboard || [];
-            
-            // Ensure catLevels is robust (merge default with saved)
-            const defaultLevels = {};
-            CAT_TYPES.forEach(c => defaultLevels[c.id] = 1);
-            this.catLevels = { ...defaultLevels, ...(data.catLevels || {}) };
-
-            if(data.lastPlayerName) document.getElementById('playerNameInput').value = data.lastPlayerName;
+        try {
+            const saved = localStorage.getItem('catRescueData_v3');
+            if (saved) {
+                const data = JSON.parse(saved);
+                this.money = data.money || 0;
+                this.launcherLevel = data.launcherLevel || 1;
+                this.leaderboard = data.leaderboard || [];
+                if (data.catLevels) {
+                    this.catLevels = { ...this.catLevels, ...data.catLevels };
+                }
+                if(data.lastPlayerName) document.getElementById('playerNameInput').value = data.lastPlayerName;
+            }
+        } catch(e) {
+            console.error("Save load error", e);
         }
     }
 
@@ -797,15 +798,13 @@ class Game {
         }
     }
 
-    // --- UPGRADE SYSTEM ---
-
     getLauncherCost() {
         return this.launcherLevel * 500;
     }
 
     getCatUpgradeCost(catId) {
         const cat = CAT_TYPES.find(c => c.id === catId);
-        const level = this.catLevels[catId] || 1; // Fallback to 1
+        const level = this.catLevels[catId] || 1;
         return cat.upgradeCostBase * level;
     }
 
@@ -816,7 +815,7 @@ class Game {
             this.launcherLevel++;
             this.audio.playBuy();
             this.saveData();
-            alert(`升級成功！彈射器等級提升至 Lv.${this.launcherLevel}！`);
+            // No alert to keep game flow smooth
         } else {
             alert(`金幣不足！`);
         }
@@ -841,7 +840,6 @@ class Game {
     }
 
     getCatScale() {
-        // Cat grows 10% per level passed
         return 1.0 + (this.levelIdx * 0.1);
     }
 
@@ -898,10 +896,12 @@ class Game {
         this.catsPool = [...CAT_TYPES]; 
         this.catsUsed = 0;
         this.cameraX = 0;
+        this.cansLeft = 0; // Reset cans count
         
         const groundY = CONFIG.height - 100;
         levelData.entities.forEach(e => {
             this.obstacles.push(new Obstacle(e, groundY));
+            if(e.t === 9 || e.t === 10) this.cansLeft++;
         });
 
         document.getElementById('levelDisplay').innerText = idx + 1;
@@ -925,17 +925,22 @@ class Game {
 
         this.state = 'SELECT';
         this.cameraX = 0; 
-        this.renderCatSelector();
-        document.getElementById('selectScreen').classList.remove('hidden');
-        document.getElementById('skill-indicator').style.display = 'none';
+        try {
+            this.renderCatSelector();
+            document.getElementById('selectScreen').classList.remove('hidden');
+            document.getElementById('skill-indicator').style.display = 'none';
+        } catch(e) {
+            console.error("UI Error in startTurn", e);
+        }
     }
 
     renderCatSelector() {
         const grid = document.getElementById('catGrid');
+        if(!grid) return;
         grid.innerHTML = '';
         const desc = document.getElementById('catDesc');
         const btn = document.getElementById('launchBtn');
-        btn.disabled = true;
+        if(btn) btn.disabled = true;
         this.selectedCatType = null;
 
         this.catsPool.forEach((cat, i) => {
@@ -953,13 +958,13 @@ class Game {
                 el.classList.add('selected');
                 this.selectedCatType = cat;
                 this.selectedCatIdx = i; 
-                desc.innerText = `${cat.desc} (Lv.${lv})`;
-                btn.disabled = false;
+                if(desc) desc.innerText = `${cat.desc} (Lv.${lv})`;
+                if(btn) btn.disabled = false;
             };
             grid.appendChild(el);
         });
 
-        btn.onclick = () => {
+        if(btn) btn.onclick = () => {
             if (this.selectedCatType) {
                 this.catsPool.splice(this.selectedCatIdx, 1);
                 
@@ -1067,7 +1072,7 @@ class Game {
         document.getElementById('skill-indicator').style.display = 'none';
         
         const s = this.cat.skill;
-        const lv = this.catLevels[this.cat.id]; 
+        const lv = this.catLevels[this.cat.id] || 1; 
 
         if (s === 'DASH') {
             this.cat.vx *= (1.8 + lv * 0.2); 
@@ -1317,16 +1322,15 @@ class Game {
         if (this.mode === 'DISTANCE' && this.cat) {
             const dist = Math.floor((this.cat.x - this.slingX) * CONFIG.meterScale);
             if (dist > 0) {
-                this.score += dist; // Add to score
-                this.totalDistance += dist; // Track for HUD
+                this.score += dist; 
+                this.totalDistance += dist; 
                 this.addMoney(Math.floor(dist/10), this.cat.x, this.cat.y - 50);
                 
-                // Landing Mark
                 const p = new Particle(this.cat.x, CONFIG.height-100, '#000', 0);
                 p.isText = true;
                 p.text = `${dist}m`;
-                p.life = 200; // Stay longer
-                p.vy = -0.5; // Float up slowly
+                p.life = 200; 
+                p.vy = -0.5; 
                 this.particles.push(p);
             }
         }
