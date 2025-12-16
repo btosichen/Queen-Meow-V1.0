@@ -6,11 +6,12 @@
     <title>Cat Can Rescue | Queen Meow 的救援作戰</title>
     <style>
         :root {
-            --primary-color: #ff9a9e;
-            --secondary-color: #fad0c4;
-            --text-color: #5d4037;
-            --ui-bg: rgba(255, 255, 255, 0.98);
+            --primary-color: #00d2ff; /* Tech Blue */
+            --secondary-color: #2c3e50; /* Dark Metal */
+            --text-color: #2c3e50;
+            --ui-bg: rgba(255, 255, 255, 0.95);
             --gold-color: #FFD700;
+            --accent-color: #ff0055; /* Tech Red */
         }
 
         body {
@@ -59,15 +60,15 @@
             pointer-events: none;
             color: var(--text-color);
             font-weight: bold;
-            text-shadow: 2px 2px 0px #fff;
+            text-shadow: 1px 1px 0px #fff;
             z-index: 5;
         }
 
         .hud-box {
-            background: var(--ui-bg);
+            background: rgba(255, 255, 255, 0.9);
             padding: 8px 15px;
-            border-radius: 20px;
-            border: 2px solid var(--primary-color);
+            border-radius: 5px; /* More angular for tech feel */
+            border-left: 4px solid var(--primary-color);
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             margin-bottom: 5px;
             font-size: 14px;
@@ -85,12 +86,14 @@
         .menu-btn {
             cursor: pointer;
             background: #fff;
-            border: 2px solid #666;
+            border: 2px solid #2c3e50;
             color: #333;
             padding: 5px 10px;
             font-size: 12px;
-            border-radius: 15px;
+            border-radius: 4px;
             margin-right: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
         .menu-btn:hover { background: #eee; }
 
@@ -100,60 +103,64 @@
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(255, 255, 0, 0.9);
-            color: red;
-            padding: 10px 20px;
-            border-radius: 30px;
+            background: rgba(0, 210, 255, 0.8);
+            color: white;
+            padding: 10px 30px;
+            border-radius: 2px;
             font-weight: bold;
             font-size: 1.2em;
-            border: 3px solid orange;
+            border: 2px solid white;
+            box-shadow: 0 0 15px var(--primary-color);
             animation: pulse 1s infinite;
             display: none;
+            text-transform: uppercase;
+            letter-spacing: 2px;
         }
 
         @keyframes pulse {
-            0% { transform: translateX(-50%) scale(1); }
-            50% { transform: translateX(-50%) scale(1.1); }
-            100% { transform: translateX(-50%) scale(1); }
+            0% { transform: translateX(-50%) scale(1); box-shadow: 0 0 10px var(--primary-color); }
+            50% { transform: translateX(-50%) scale(1.05); box-shadow: 0 0 20px var(--primary-color); }
+            100% { transform: translateX(-50%) scale(1); box-shadow: 0 0 10px var(--primary-color); }
         }
 
         /* Panels */
         .panel {
             background: var(--ui-bg);
-            padding: 20px;
-            border-radius: 20px;
+            padding: 25px;
+            border-radius: 10px; /* Less rounded */
             text-align: center;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-            border: 4px solid var(--primary-color);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+            border: 2px solid var(--primary-color);
             max-width: 95%;
-            width: 550px; 
+            width: 500px;
             animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             position: relative;
             max-height: 90vh;
             overflow-y: auto;
-            pointer-events: auto; 
-        }
-
-        h1 { margin: 0 0 5px 0; color: #e65100; font-size: 1.6em; }
-        h2 { margin: 0 0 10px 0; color: #e65100; font-size: 1.4em; }
-        p { color: var(--text-color); line-height: 1.4; margin-bottom: 10px; font-size: 0.9em; }
-        
-        button {
-            background: linear-gradient(to bottom, #ff9a9e 0%, #ff6b6b 100%);
-            border: none;
-            padding: 10px 20px;
-            color: white;
-            font-size: 1em;
-            border-radius: 50px;
-            cursor: pointer;
-            margin: 5px;
-            box-shadow: 0 4px 0 #d32f2f;
-            transition: transform 0.1s;
-            min-width: 120px;
             pointer-events: auto;
         }
 
-        button:active { transform: translateY(4px); box-shadow: 0 1px 0 #d32f2f; }
+        h1 { margin: 0 0 5px 0; color: #2980b9; font-size: 1.8em; text-transform: uppercase; letter-spacing: 1px; }
+        h2 { margin: 0 0 10px 0; color: #e67e22; font-size: 1.4em; }
+        p { color: var(--text-color); line-height: 1.4; margin-bottom: 10px; font-size: 0.9em; }
+        
+        button {
+            background: linear-gradient(to right, #2980b9, #2c3e50);
+            border: none;
+            padding: 12px 25px;
+            color: white;
+            font-size: 1em;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 8px 5px;
+            box-shadow: 0 4px 0 #1a252f;
+            transition: transform 0.1s;
+            min-width: 140px;
+            font-weight: bold;
+            pointer-events: auto;
+        }
+
+        button:active { transform: translateY(4px); box-shadow: 0 1px 0 #1a252f; }
         button:disabled { filter: grayscale(1); cursor: not-allowed; opacity: 0.6; }
 
         button.mode-btn {
@@ -162,94 +169,50 @@
             margin: 10px auto;
             font-size: 1.1em;
             padding: 12px;
+            background: linear-gradient(to right, #e74c3c, #c0392b); /* Red for rescue */
+            box-shadow: 0 4px 0 #96281b;
         }
+        button.mode-btn:active { box-shadow: 0 1px 0 #96281b; }
 
         button.secondary {
-            background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%);
-            box-shadow: 0 4px 0 #0288d1;
+            background: linear-gradient(to right, #27ae60, #2ecc71); /* Green */
+            box-shadow: 0 4px 0 #219150;
         }
-        button.secondary:active { box-shadow: 0 1px 0 #0288d1; }
+        button.secondary:active { box-shadow: 0 1px 0 #219150; }
 
         /* Input Field */
         input[type="text"] {
-            padding: 8px;
+            padding: 10px;
             font-size: 1em;
             border: 2px solid #ccc;
-            border-radius: 10px;
+            border-radius: 4px;
             width: 60%;
             text-align: center;
-            margin-bottom: 5px;
+            margin-bottom: 10px;
+            background: #f9f9f9;
         }
 
         /* Upgrade Sections */
         .upgrade-section {
-            background: #fff3e0;
-            border: 2px dashed #ff9800;
-            padding: 10px;
-            border-radius: 15px;
-            margin: 10px 0;
-            text-align: left;
-        }
-        .upgrade-section h3 { margin: 0 0 5px 0; font-size: 1em; color: #e65100; text-align: center; }
-
-        /* Cat Upgrade List (Horizontal Scroll) */
-        .cat-upgrade-list {
-            display: flex;
-            overflow-x: auto;
-            gap: 10px;
-            padding: 5px;
-            scrollbar-width: thin;
-            -webkit-overflow-scrolling: touch;
-            pointer-events: auto; /* Ensure scrolling works */
-        }
-        .cat-upgrade-item {
-            flex: 0 0 100px;
-            background: white;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            padding: 5px;
+            background: #ecf0f1;
+            border: 2px solid #bdc3c7;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
             text-align: center;
-            font-size: 0.8em;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: space-between;
-            pointer-events: auto; /* Ensure clicks are captured */
-            position: relative; /* Fix z-index stacking */
-            z-index: 5;
         }
-        .cat-upgrade-item.affordable { border-color: #4caf50; }
-        .cat-icon { font-size: 24px; margin-bottom: 2px; }
-        .cat-skill-name { color: #d84315; font-weight: bold; margin-bottom: 2px; font-size: 0.9em; height: 2.2em; overflow: hidden; }
-        
-        /* Updated mini button style for better clickability */
-        .upgrade-mini-btn {
-            background: #ffcc80;
-            color: #333;
-            border: none;
-            border-radius: 15px;
-            padding: 6px 10px;
-            font-size: 0.9em;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 5px;
-            box-shadow: 0 2px 0 #e65100;
-            pointer-events: auto !important; /* Force click events */
-            position: relative;
-            z-index: 10;
-        }
-        .upgrade-mini-btn:active { transform: translateY(2px); box-shadow: 0 0 0; }
-        .upgrade-mini-btn:disabled { background: #eee; color: #aaa; box-shadow: none; cursor: default; }
+        .upgrade-section h3 { margin: 0 0 10px 0; font-size: 1em; color: #2c3e50; }
 
         /* Launcher Upgrade Button */
         .launcher-btn {
-            background: linear-gradient(to bottom, #ffd700 0%, #ff8c00 100%);
-            box-shadow: 0 4px 0 #e65100;
+            background: linear-gradient(to right, #f1c40f, #f39c12);
+            box-shadow: 0 4px 0 #d35400;
             font-weight: bold;
-            color: #5d4037;
+            color: #2c3e50;
             width: 100%;
-            margin: 5px 0;
+            margin: 0;
         }
+        .launcher-btn:active { box-shadow: 0 1px 0 #d35400; }
 
         /* Leaderboard Table */
         .rank-table {
@@ -258,9 +221,9 @@
             margin-top: 10px;
             font-size: 0.9em;
         }
-        .rank-table th { background: #ffccbc; padding: 8px; color: #d84315; }
-        .rank-table td { border-bottom: 1px solid #eee; padding: 6px; color: #555; }
-        .rank-table tr:nth-child(even) { background: #fffbe6; }
+        .rank-table th { background: #34495e; padding: 8px; color: white; }
+        .rank-table td { border-bottom: 1px solid #ddd; padding: 8px; color: #333; }
+        .rank-table tr:nth-child(even) { background: #f2f2f2; }
 
         /* Cat Selection Cards */
         .cat-grid {
@@ -271,13 +234,15 @@
         }
         .cat-card {
             background: #fff;
-            border: 2px solid #ccc;
-            border-radius: 10px;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
             padding: 5px;
             cursor: pointer;
             position: relative;
+            transition: transform 0.1s;
         }
-        .cat-card.selected { border-color: #e65100; background: #ffe0b2; transform: scale(1.1); z-index: 2; }
+        .cat-card:hover { transform: translateY(-2px); }
+        .cat-card.selected { border-color: #3498db; background: #ebf5fb; transform: scale(1.1); z-index: 2; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
         .cat-card.used { opacity: 0.4; filter: grayscale(1); cursor: default; }
 
         .hidden { display: none !important; }
@@ -301,45 +266,37 @@
             </div>
             <div class="hud-box">🏆 最高: <span id="highScoreDisplay">0</span></div>
             <div class="hud-box" id="levelDisplayBox">關卡: <span id="levelDisplay">1</span></div>
-            <!-- Distance HUD -->
             <div class="hud-box hidden" id="distanceBox">總距離: <span id="totalDistDisplay">0</span>m</div>
         </div>
         <div style="display:flex; flex-direction:column; align-items:flex-end;">
             <div class="hud-box">貓咪: <span id="catCountDisplay">0</span></div>
-            <div class="hud-box" id="targetDisplayBox" style="color:red">罐頭: <span id="canDisplay">0</span></div>
-            <div class="hud-box hidden" id="comboDisplay" style="color:#e65100">Combo!</div>
+            <div class="hud-box" id="targetDisplayBox" style="color:#e74c3c">罐頭: <span id="canDisplay">0</span></div>
+            <div class="hud-box hidden" id="comboDisplay" style="color:#e67e22">Combo!</div>
         </div>
     </div>
 
     <!-- Skill Indicator -->
-    <div id="skill-indicator">技能可用! (點擊/空白鍵)</div>
+    <div id="skill-indicator">SKILL READY! (SPACE/CLICK)</div>
 
     <!-- Start Screen -->
     <div id="startScreen" class="ui-layer interactive">
         <div class="panel">
             <h1>👑 Queen Meow 的救援作戰</h1>
-            <div style="font-size:0.8em; color:#666; margin-bottom:5px;">累積金幣，升級裝備與貓咪技能！</div>
+            <p>累積金幣，升級高科技彈射器！<br>每過一關，會獲得一隻額外的貓咪支援！</p>
             
-            <div style="margin: 5px 0;">
+            <div style="margin: 10px 0;">
                 <input type="text" id="playerNameInput" placeholder="輸入名字 (預設: 無名貓)" maxlength="8">
-                <button class="secondary" onclick="game.showLeaderboard()" style="padding: 5px 10px; font-size: 0.9em; min-width: auto;">🏆 排行榜</button>
+                <button class="secondary" onclick="game.showLeaderboard()" style="padding: 8px 15px; font-size: 0.9em; min-width: auto;">🏆 排行榜</button>
             </div>
 
             <div class="upgrade-section">
-                <h3>🛠️ 彈射器升級 (Lv.<span id="startLauncherLv">1</span>)</h3>
+                <h3>⚡ 離子彈射器升級 (Lv.<span id="startLauncherLv">1</span>)</h3>
                 <button id="startUpgradeBtn" class="launcher-btn" onclick="game.buyLauncherUpgrade()">
-                    強化彈力 ($500)
+                    強化發射功率 ($500)
                 </button>
             </div>
 
-            <div class="upgrade-section">
-                <h3>🐱 貓咪特訓營 (強化必殺技)</h3>
-                <div class="cat-upgrade-list" id="catUpgradeList">
-                    <!-- JS 生成 -->
-                </div>
-            </div>
-
-            <div style="font-size:1em; color:#d84315; font-weight:bold; margin-top:5px;">持有金幣: 💰<span id="startMoneyDisplay">0</span></div>
+            <div style="font-size:1.1em; color:#d35400; font-weight:bold; margin-top:10px;">持有金幣: 💰<span id="startMoneyDisplay">0</span></div>
 
             <button class="mode-btn" onclick="game.initMode('RESCUE')">🚀 闖關救援模式</button>
             <button class="mode-btn secondary" onclick="game.initMode('DISTANCE')">🌸 花園飛遠模式</button>
@@ -373,25 +330,19 @@
     <!-- Level Cleared / Failed -->
     <div id="resultScreen" class="ui-layer interactive hidden">
         <div class="panel">
-            <h1 id="resultTitle">關卡完成!</h1>
+            <h1 id="resultTitle">MISSION ACCOMPLISHED</h1>
             <p id="resultMsg">女王獲救了!</p>
             <h2 id="resultScore">0</h2>
-            <p id="newRecordMsg" style="color:red; font-weight:bold; display:none;">✨ 新紀錄! ✨</p>
+            <p id="newRecordMsg" style="color:#e74c3c; font-weight:bold; display:none;">✨ NEW RECORD! ✨</p>
             
-            <div style="font-size:0.9em; color:#666;">持有金幣: 💰<span id="resultMoneyDisplay">0</span></div>
+            <div style="font-size:1em; color:#d35400; font-weight:bold;">持有金幣: 💰<span id="resultMoneyDisplay">0</span></div>
 
             <!-- Result Screen Upgrades -->
             <div class="upgrade-section">
-                <h3>🛠️ 戰地升級 (Lv.<span id="resultLauncherLv">1</span>)</h3>
+                <h3>⚡ 戰地升級 (Lv.<span id="resultLauncherLv">1</span>)</h3>
                 <button id="resultUpgradeBtn" class="launcher-btn" onclick="game.buyLauncherUpgrade()">
-                    強化彈力 ($500)
+                    強化發射功率 ($500)
                 </button>
-            </div>
-            <div class="upgrade-section">
-                <h3>🐱 貓咪特訓 (點擊升級)</h3>
-                <div class="cat-upgrade-list" id="resultCatUpgradeList">
-                    <!-- JS 生成 -->
-                </div>
             </div>
 
             <div id="nextLevelControls" style="display: flex; justify-content: center; gap: 10px; margin-top: 15px;">
@@ -415,7 +366,7 @@
 <script>
 /**
  * Cat Can Rescue: Queen Meow's Rescue Operation
- * Features: Infinite Levels, Cat Growth, Leaderboard, In-Game Upgrades, Distance Mode, Robust UI
+ * Features: Infinite Levels, Cat Growth, Leaderboard, Tech Launcher, Extra Cats per Level
  */
 
 // --- 1. CONFIG & DATA ---
@@ -431,15 +382,15 @@ const CONFIG = {
     height: 0
 };
 
-// 貓咪資料 (半徑已加倍)
+// 貓咪資料 (半徑已加倍，移除技能升級相關欄位)
 const CAT_TYPES = [
-    { id: 'orange', name: '小橘', color: '#FFB347', mass: 1.0, radius: 30, skill: 'DASH', desc: '技能: 二段加速衝刺', skillName: '極速衝刺', upgradeCostBase: 200 },
-    { id: 'black', name: '黑貓', color: '#333333', mass: 1.0, radius: 28, skill: 'CLONE', desc: '技能: 影分身攻擊', skillName: '影分身之術', upgradeCostBase: 250 },
-    { id: 'cow', name: '乳牛', color: '#EEEEEE', pattern: 'cow', mass: 1.3, radius: 32, skill: 'QUAKE', desc: '技能: 落地大地震', skillName: '大地震擊', upgradeCostBase: 300 },
-    { id: 'calico', name: '三花', color: '#FFFFFF', pattern: 'calico', mass: 1.0, radius: 30, skill: 'FLOWER_BOMB', desc: '技能: 空中花瓣炸裂', skillName: '花團錦簇', upgradeCostBase: 250 },
-    { id: 'tabby', name: '虎斑', color: '#A0A0A0', pattern: 'stripe', mass: 1.4, radius: 32, skill: 'DRILL', desc: '技能: 鑽頭滾動 (低摩擦)', skillName: '無敵鑽頭', upgradeCostBase: 300 },
-    { id: 'white', name: '白貓', color: '#F0F8FF', mass: 0.8, radius: 26, skill: 'STEER', desc: '技能: 柔風轉向 (可控)', skillName: '暴風駕駛', upgradeCostBase: 200 },
-    { id: 'chubby', name: '胖胖', color: '#FFD1DC', mass: 2.0, radius: 44, skill: 'GIANT', desc: '技能: 巨大化撞擊', skillName: '巨神兵', upgradeCostBase: 400 }
+    { id: 'orange', name: '小橘', color: '#FFB347', mass: 1.0, radius: 30, skill: 'DASH', desc: '技能: 二段加速衝刺' }, 
+    { id: 'black', name: '黑貓', color: '#333333', mass: 1.0, radius: 28, skill: 'CLONE', desc: '技能: 影分身攻擊' }, 
+    { id: 'cow', name: '乳牛', color: '#EEEEEE', pattern: 'cow', mass: 1.3, radius: 32, skill: 'QUAKE', desc: '技能: 落地大地震' }, 
+    { id: 'calico', name: '三花', color: '#FFFFFF', pattern: 'calico', mass: 1.0, radius: 30, skill: 'FLOWER_BOMB', desc: '技能: 空中花瓣炸裂' }, 
+    { id: 'tabby', name: '虎斑', color: '#A0A0A0', pattern: 'stripe', mass: 1.4, radius: 32, skill: 'DRILL', desc: '技能: 鑽頭滾動 (低摩擦)' }, 
+    { id: 'white', name: '白貓', color: '#F0F8FF', mass: 0.8, radius: 26, skill: 'STEER', desc: '技能: 柔風轉向 (可控)' }, 
+    { id: 'chubby', name: '胖胖', color: '#FFD1DC', mass: 2.0, radius: 44, skill: 'GIANT', desc: '技能: 巨大化撞擊' } 
 ];
 
 const CAN_W = 70; 
@@ -676,7 +627,7 @@ class Game {
         this.flowers = [];
         this.cameraX = 0;
         this.gameFrame = 0;
-        this.cansLeft = 0; // Initialize immediately
+        this.cansLeft = 0; 
         
         this.slingX = 150;
         this.slingY = 0; 
@@ -691,8 +642,6 @@ class Game {
         
         this.money = 0;
         this.launcherLevel = 1;
-        this.catLevels = {}; 
-        CAT_TYPES.forEach(c => this.catLevels[c.id] = 1);
 
         this.playerName = "無名貓";
         this.leaderboard = []; 
@@ -709,15 +658,12 @@ class Game {
 
     loadSave() {
         try {
-            const saved = localStorage.getItem('catRescueData_v3');
+            const saved = localStorage.getItem('catRescueData_v4'); // New version
             if (saved) {
                 const data = JSON.parse(saved);
                 this.money = data.money || 0;
                 this.launcherLevel = data.launcherLevel || 1;
                 this.leaderboard = data.leaderboard || [];
-                if (data.catLevels) {
-                    this.catLevels = { ...this.catLevels, ...data.catLevels };
-                }
                 if(data.lastPlayerName) document.getElementById('playerNameInput').value = data.lastPlayerName;
             }
         } catch(e) {
@@ -735,10 +681,9 @@ class Game {
             money: this.money,
             launcherLevel: this.launcherLevel,
             leaderboard: this.leaderboard,
-            lastPlayerName: this.playerName,
-            catLevels: this.catLevels
+            lastPlayerName: this.playerName
         };
-        localStorage.setItem('catRescueData_v3', JSON.stringify(data));
+        localStorage.setItem('catRescueData_v4', JSON.stringify(data));
         this.updateUI();
     }
 
@@ -809,12 +754,6 @@ class Game {
         return this.launcherLevel * 500;
     }
 
-    getCatUpgradeCost(catId) {
-        const cat = CAT_TYPES.find(c => c.id === catId);
-        const level = this.catLevels[catId] || 1;
-        return cat.upgradeCostBase * level;
-    }
-
     buyLauncherUpgrade() {
         const cost = this.getLauncherCost();
         if (this.money >= cost) {
@@ -822,24 +761,10 @@ class Game {
             this.launcherLevel++;
             this.audio.playBuy();
             this.saveData();
-            // No alert to keep game flow smooth
         } else {
             alert(`金幣不足！`);
         }
         this.updateUI(); 
-    }
-
-    buyCatUpgrade(catId) {
-        const cost = this.getCatUpgradeCost(catId);
-        if (this.money >= cost) {
-            this.money -= cost;
-            this.catLevels[catId] = (this.catLevels[catId] || 1) + 1;
-            this.audio.playBuy();
-            this.saveData();
-        } else {
-            alert(`金幣不足！`);
-        }
-        this.updateUI();
     }
 
     getLaunchPower() {
@@ -847,6 +772,7 @@ class Game {
     }
 
     getCatScale() {
+        // Cat grows 10% per level passed
         return 1.0 + (this.levelIdx * 0.1);
     }
 
@@ -900,10 +826,20 @@ class Game {
         this.obstacles = [];
         this.flowers = [];
         this.particles = [];
+        
+        // Generate Cat Pool: Base 7 + Extras
         this.catsPool = [...CAT_TYPES]; 
+        // Add random extra cats based on level index
+        for(let i = 0; i < idx; i++) {
+            const randomCat = CAT_TYPES[Math.floor(Math.random() * CAT_TYPES.length)];
+            this.catsPool.push(randomCat);
+        }
+        // Shuffle pool
+        this.catsPool.sort(() => Math.random() - 0.5);
+
         this.catsUsed = 0;
         this.cameraX = 0;
-        this.cansLeft = 0; // Reset cans count
+        this.cansLeft = 0; 
         
         const groundY = CONFIG.height - 100;
         levelData.entities.forEach(e => {
@@ -954,18 +890,16 @@ class Game {
             const el = document.createElement('div');
             el.className = 'cat-card';
             el.style.borderColor = cat.color;
-            const lv = this.catLevels[cat.id] || 1;
             el.innerHTML = `
                 <div style="font-size:24px;">🐱</div>
                 <div style="font-size:10px;">${cat.name}</div>
-                <div style="font-size:9px; background:orange; color:white; border-radius:5px;">Lv.${lv}</div>
             `;
             el.onclick = () => {
                 document.querySelectorAll('.cat-card').forEach(c => c.classList.remove('selected'));
                 el.classList.add('selected');
                 this.selectedCatType = cat;
                 this.selectedCatIdx = i; 
-                if(desc) desc.innerText = `${cat.desc} (Lv.${lv})`;
+                if(desc) desc.innerText = `${cat.desc}`;
                 if(btn) btn.disabled = false;
             };
             grid.appendChild(el);
@@ -1079,7 +1013,7 @@ class Game {
         document.getElementById('skill-indicator').style.display = 'none';
         
         const s = this.cat.skill;
-        const lv = this.catLevels[this.cat.id] || 1; 
+        const lv = 1; // Default skill level (removed paid upgrade)
 
         if (s === 'DASH') {
             this.cat.vx *= (1.8 + lv * 0.2); 
@@ -1447,6 +1381,7 @@ class Game {
     }
 
     updateUI() {
+        // Update Money Displays
         const moneyEl = document.getElementById('moneyDisplay');
         if (moneyEl) moneyEl.innerText = this.money;
         
@@ -1456,6 +1391,7 @@ class Game {
         const resultMoneyEl = document.getElementById('resultMoneyDisplay');
         if (resultMoneyEl) resultMoneyEl.innerText = this.money;
         
+        // Update Launcher Info
         const launcherLvEl = document.getElementById('startLauncherLv');
         if (launcherLvEl) launcherLvEl.innerText = this.launcherLevel;
         const resultLauncherLvEl = document.getElementById('resultLauncherLv');
@@ -1484,14 +1420,7 @@ class Game {
             resultUpgradeBtn.disabled = this.money < cost;
         }
 
-        // Generate Cat Upgrade List (Start Screen)
-        const list = document.getElementById('catUpgradeList');
-        this.renderCatUpgradeList(list);
-        
-        // Generate Cat Upgrade List (Result Screen)
-        const resultList = document.getElementById('resultCatUpgradeList');
-        this.renderCatUpgradeList(resultList);
-
+        // HUD Info
         const scoreEl = document.getElementById('scoreDisplay');
         if (scoreEl) scoreEl.innerText = this.score;
         
@@ -1503,56 +1432,12 @@ class Game {
             canDisplayEl.innerText = this.cansLeft;
         }
     }
-    
-    renderCatUpgradeList(container) {
-        if (!container) return;
-        container.innerHTML = '';
-        CAT_TYPES.forEach(cat => {
-            const lv = this.catLevels[cat.id] || 1;
-            const upgradeCost = this.getCatUpgradeCost(cat.id);
-            const affordable = this.money >= upgradeCost;
-            
-            const item = document.createElement('div');
-            item.className = `cat-upgrade-item ${affordable ? 'affordable' : ''}`;
-            
-            // Create inner HTML structure first
-            const icon = document.createElement('div');
-            icon.className = 'cat-icon';
-            icon.innerText = '🐱';
-            
-            const name = document.createElement('div');
-            name.className = 'cat-skill-name';
-            name.style.color = cat.color;
-            name.innerText = cat.skillName;
-            
-            const level = document.createElement('div');
-            level.style.fontSize = '0.8em';
-            level.style.color = '#666';
-            level.innerText = `Lv.${lv}`;
-            
-            const btn = document.createElement('button');
-            btn.className = 'upgrade-mini-btn';
-            btn.disabled = !affordable;
-            btn.innerText = `$${upgradeCost}`;
-            // Direct binding to ensure it works
-            btn.onclick = (e) => {
-                e.stopPropagation(); // Prevent bubbling issues
-                game.buyCatUpgrade(cat.id);
-            };
-
-            item.appendChild(icon);
-            item.appendChild(name);
-            item.appendChild(level);
-            item.appendChild(btn);
-            
-            container.appendChild(item);
-        });
-    }
 
     updateHUD() {
-        this.updateUI(); 
+        this.updateUI(); // Keep synced
     }
 
+    // --- 5. RENDER ---
     draw() {
         const ctx = this.ctx;
         ctx.clearRect(0, 0, CONFIG.width, CONFIG.height);
@@ -1580,9 +1465,9 @@ class Game {
         
         if (this.cat) this.drawCat(ctx, this.cat);
         else if (this.state === 'AIM') {
+             // Preview Cat
              let x = this.dragCurrent ? this.dragCurrent.x : this.slingX;
              let y = this.dragCurrent ? this.dragCurrent.y : this.slingY;
-             // Scale Preview
              const scale = this.getCatScale();
              const previewCat = {
                  ...this.selectedCatType, 
@@ -1591,9 +1476,10 @@ class Game {
              };
              this.drawCat(ctx, previewCat);
              
+             // Aim Line (Tech style)
              if(this.dragCurrent) {
                 ctx.beginPath();
-                ctx.strokeStyle = "rgba(255,255,255,0.6)";
+                ctx.strokeStyle = "rgba(0, 255, 255, 0.5)"; // Cyan laser
                 ctx.lineWidth = 2;
                 ctx.setLineDash([5,5]);
                 ctx.moveTo(x, y);
@@ -1629,6 +1515,7 @@ class Game {
             ctx.translate(f.x, f.y);
             ctx.scale(f.scale, f.scale);
             ctx.fillStyle = f.color;
+            // Draw Paw Flower
             ctx.beginPath(); ctx.arc(0, -10, 8, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(-10, -15, 5, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(0, -22, 5, 0, Math.PI*2); ctx.fill();
@@ -1641,23 +1528,86 @@ class Game {
     drawSlingshot(ctx, front) {
         const x = this.slingX;
         const y = this.slingY;
-        ctx.strokeStyle = '#5D4037';
-        ctx.lineWidth = 6;
         
+        // Tech Style Colors
+        const metalDark = '#2c3e50';
+        const metalLight = '#95a5a6';
+        const energyColor = this.launcherLevel > 5 ? '#f1c40f' : '#00d2ff'; // Gold or Cyan
+
         if (!front) {
-            ctx.beginPath(); ctx.moveTo(x, y+50); ctx.lineTo(x, y); ctx.lineTo(x-20, y-30); ctx.stroke();
+            // Back Pillar (The base)
+            ctx.save();
+            const grad = ctx.createLinearGradient(x - 10, y, x + 10, y);
+            grad.addColorStop(0, metalDark);
+            grad.addColorStop(0.5, metalLight);
+            grad.addColorStop(1, metalDark);
+            
+            ctx.fillStyle = grad;
+            ctx.fillRect(x - 10, y, 20, 60); // Base post
+            
+            // Mechanical details
+            ctx.fillStyle = '#34495e';
+            ctx.fillRect(x - 12, y + 50, 24, 10); // Base plate
+            ctx.restore();
+
+            // Back Fork
+            ctx.save();
+            ctx.strokeStyle = metalDark;
+            ctx.lineWidth = 8;
+            ctx.lineCap = 'square';
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x - 25, y - 40);
+            ctx.stroke();
+            
+            // Energy Node
+            ctx.fillStyle = energyColor;
+            ctx.shadowColor = energyColor;
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.arc(x - 25, y - 40, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
         } else {
+            // Elastic (Energy Beam)
             if (this.state === 'AIM' && this.dragCurrent) {
-                const level = this.launcherLevel;
-                ctx.strokeStyle = level > 5 ? '#FFD700' : (level > 2 ? '#E65100' : '#3E2723');
-                ctx.lineWidth = 4 + Math.min(6, level); 
+                ctx.save();
+                ctx.strokeStyle = energyColor; // Energy beam
+                ctx.lineWidth = 4 + (this.launcherLevel * 0.5);
+                ctx.shadowColor = energyColor;
+                ctx.shadowBlur = 15;
+                ctx.globalAlpha = 0.8;
                 
-                ctx.beginPath(); ctx.moveTo(x-20, y-30); ctx.lineTo(this.dragCurrent.x, this.dragCurrent.y); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(x+20, y-30); ctx.lineTo(this.dragCurrent.x, this.dragCurrent.y); ctx.stroke();
-                
-                ctx.strokeStyle = '#5D4037'; ctx.lineWidth = 6;
+                ctx.beginPath();
+                ctx.moveTo(x - 25, y - 40);
+                ctx.lineTo(this.dragCurrent.x, this.dragCurrent.y);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(x + 25, y - 40);
+                ctx.lineTo(this.dragCurrent.x, this.dragCurrent.y);
+                ctx.stroke();
+                ctx.restore();
             }
-            ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x+20, y-30); ctx.stroke();
+
+            // Front Fork
+            ctx.save();
+            ctx.strokeStyle = metalDark;
+            ctx.lineWidth = 8;
+            ctx.lineCap = 'square';
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + 25, y - 40);
+            ctx.stroke();
+
+            // Energy Node
+            ctx.fillStyle = energyColor;
+            ctx.shadowColor = energyColor;
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.arc(x + 25, y - 40, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
         }
     }
 
